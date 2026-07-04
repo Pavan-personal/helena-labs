@@ -48,10 +48,22 @@ export async function getWorkspaceBySlackId(slackTeamId: string): Promise<Worksp
 }
 
 /**
- * Fallback for local dev: seeds a default workspace so ingest endpoints work
- * without requiring the full Slack OAuth install flow.
+ * Returns the first workspace row for the dashboard and cron jobs.
+ * For the hackathon single-tenant demo, this reads whichever workspace was
+ * first created by an event ingest (Slack install, webhook, etc). If none
+ * exists yet, it seeds one so ingest endpoints have something to write into.
  */
 export async function getDefaultWorkspace(): Promise<WorkspaceRow> {
+  const db = getServerClient();
+  const { data: existing } = await db
+    .from('workspaces')
+    .select('*')
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (existing) return existing as WorkspaceRow;
+
   return getOrCreateWorkspace({
     slackTeamId: 'default',
     slackTeamName: 'Default',

@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { getOrCreateWorkspace, searchIncidents, getIncidentsByIds } from '@helena/db';
 import { rerankCandidates, synthesizeAnswer } from '@helena/btl';
 import { verifySlackSignature, postToSlack } from '@/lib/slack';
@@ -6,6 +6,7 @@ import { loadEnv } from '@helena/shared';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
   const raw = await req.text();
@@ -36,14 +37,31 @@ export async function POST(req: Request) {
     botToken: env.SLACK_BOT_TOKEN
   });
 
-  // Ack immediately and process in the background so Slack does not time out.
-  processQuery({
-    workspaceId: workspace.id,
-    query: text,
-    channelId,
-    responseUrl,
-    botToken: workspace.bot_token
-  }).catch((e) => console.error('processQuery failed:', e));
+  // Ack immediately with an ephemeral holding message.
+  // after() keeps the serverless runtime alive so the pipeline can post via response_url.
+  after(async () => {
+    try {
+      await processQuery({
+        workspaceId: workspace.id,
+        query: text,
+        channelId,
+        responseUrl,
+        botToken: workspace.bot_token
+      });
+    } catch (e) {
+      console.error('processQuery failed:', e);
+      if (responseUrl) {
+        await fetch(responseUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            response_type: 'ephemeral',
+            text: `Pipeline error: ${e instanceof Error ? e.message : 'unknown'}`
+          })
+        });
+      }
+    }
+  });
 
   return NextResponse.json({
     response_type: 'ephemeral',
