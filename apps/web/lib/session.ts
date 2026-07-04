@@ -36,14 +36,17 @@ function decodeSession(token: string, secret: string): string | null {
 }
 
 function buildCookieString(name: string, value: string, maxAge: number): string {
-  const parts = [
-    `${name}=${value}`,
-    'Path=/',
-    'HttpOnly',
-    'Secure',
-    'SameSite=Lax',
-    `Max-Age=${maxAge}`
-  ];
+  const parts = [`${name}=${value}`, 'Path=/'];
+  if (maxAge > 0) {
+    const expires = new Date(Date.now() + maxAge * 1000).toUTCString();
+    parts.push(`Expires=${expires}`);
+  } else {
+    parts.push('Expires=Thu, 01 Jan 1970 00:00:00 GMT');
+  }
+  parts.push(`Max-Age=${maxAge}`);
+  parts.push('HttpOnly');
+  parts.push('Secure');
+  parts.push('SameSite=None');
   return parts.join('; ');
 }
 
