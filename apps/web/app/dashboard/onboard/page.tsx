@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation';
 import { requireWorkspace } from '@/lib/session';
 import { fetchDiscordChannels } from '@/lib/discord';
-import { joinChannelAction } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -64,7 +63,7 @@ export default async function OnboardPage() {
             {workspace.chat_platform === 'slack' && ' Reinstall the app if scopes changed.'}
           </div>
         ) : (
-          <form action={joinChannelAction} className="space-y-4">
+          <form action="/api/onboard/select-channel" method="POST" className="space-y-4">
             <div className="border border-neutral-800 rounded-lg divide-y divide-neutral-800 max-h-96 overflow-auto">
               {channels.map((c, i) => (
                 <label
