@@ -8,7 +8,13 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: Request) {
   const workspace = await getWorkspaceFromSession();
   if (!workspace) {
-    return NextResponse.redirect(new URL('/?install_error=no_session', new URL(req.url).origin));
+    const raw = req.headers.get('cookie') ?? '';
+    const preview = raw.slice(0, 120);
+    console.error('select-channel no_session, raw cookie header:', preview);
+    const target = new URL('/?install_error=no_session', new URL(req.url).origin);
+    target.searchParams.set('cookie_len', String(raw.length));
+    target.searchParams.set('cookie_preview', preview);
+    return NextResponse.redirect(target);
   }
 
   const form = await req.formData();

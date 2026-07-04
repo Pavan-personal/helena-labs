@@ -6,7 +6,12 @@ export const dynamic = 'force-dynamic';
 export default async function Home({
   searchParams
 }: {
-  searchParams: Promise<{ install_error?: string; signed_out?: string }>;
+  searchParams: Promise<{
+    install_error?: string;
+    signed_out?: string;
+    cookie_len?: string;
+    cookie_preview?: string;
+  }>;
 }) {
   const params = await searchParams;
   const workspace = await getWorkspaceFromSession();
@@ -25,7 +30,18 @@ export default async function Home({
 
         {params.install_error && (
           <div className="border border-red-900 bg-red-950 text-red-300 rounded-lg p-3 mb-6 text-sm">
-            Install failed: {params.install_error}. Try again.
+            <div>Install failed: {params.install_error}. Try again.</div>
+            {params.cookie_len !== undefined && (
+              <div className="mt-2 text-xs opacity-70">
+                Cookie header length: {params.cookie_len}
+                {params.cookie_preview && (
+                  <>
+                    <br />
+                    Cookie preview: <code>{params.cookie_preview}</code>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         )}
 
