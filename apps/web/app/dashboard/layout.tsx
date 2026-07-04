@@ -22,8 +22,11 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         <Link href="/" className="block text-xl font-bold tracking-tight mb-1 text-white">
           helena
         </Link>
-        <div className="text-xs text-neutral-500 mb-6 truncate" title={workspace.slack_team_name}>
-          {workspace.slack_team_name}
+        <div className="text-xs text-neutral-500 mb-6 truncate" title={workspace.chat_platform === 'discord' ? workspace.discord_guild_name ?? '' : workspace.slack_team_name ?? ''}>
+          {workspace.chat_platform === 'discord'
+            ? workspace.discord_guild_name
+            : workspace.slack_team_name}
+          <span className="ml-1 text-neutral-600">· {workspace.chat_platform}</span>
         </div>
 
         <nav className="space-y-1 flex-1">

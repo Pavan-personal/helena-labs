@@ -41,7 +41,7 @@ export default async function Home({
               href="/dashboard"
               className="px-5 py-2.5 rounded bg-white text-black font-medium hover:bg-neutral-200"
             >
-              Open {workspace.slack_team_name} dashboard
+              Open {workspace.chat_platform === 'discord' ? workspace.discord_guild_name : workspace.slack_team_name} dashboard
             </Link>
             <Link
               href="/api/auth/signout"
@@ -51,15 +51,24 @@ export default async function Home({
             </Link>
           </div>
         ) : (
-          <div className="flex gap-3 items-center">
-            <a
-              href="/api/auth/slack/install"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded bg-white text-black font-medium hover:bg-neutral-200"
-            >
-              <SlackIcon />
-              Add to Slack
-            </a>
-            <span className="text-sm text-neutral-500">Free to try. One click install.</span>
+          <div className="flex flex-col gap-3">
+            <div className="flex gap-3">
+              <a
+                href="/api/auth/slack/install"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded bg-white text-black font-medium hover:bg-neutral-200"
+              >
+                <SlackIcon />
+                Add to Slack
+              </a>
+              <a
+                href="/api/auth/discord/install"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded bg-[#5865F2] text-white font-medium hover:bg-[#4752c4]"
+              >
+                <DiscordIcon />
+                Add to Discord
+              </a>
+            </div>
+            <span className="text-sm text-neutral-500">Free to try. Pick your chat, install in one click.</span>
           </div>
         )}
 
@@ -104,6 +113,14 @@ function SlackIcon() {
       <path fill="#36C5F0" d="M45.2 25.8c-7.1 0-12.9-5.8-12.9-12.9S38.1 0 45.2 0s12.9 5.8 12.9 12.9v12.9H45.2zm0 6.5c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H12.9C5.8 58.1 0 52.3 0 45.2s5.8-12.9 12.9-12.9h32.3z"/>
       <path fill="#2EB67D" d="M97 45.2c0-7.1 5.8-12.9 12.9-12.9s12.9 5.8 12.9 12.9-5.8 12.9-12.9 12.9H97V45.2zm-6.5 0c0 7.1-5.8 12.9-12.9 12.9s-12.9-5.8-12.9-12.9V12.9C64.7 5.8 70.5 0 77.6 0s12.9 5.8 12.9 12.9v32.3z"/>
       <path fill="#ECB22E" d="M77.6 97c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9-12.9-5.8-12.9-12.9V97h12.9zm0-6.5c-7.1 0-12.9-5.8-12.9-12.9s5.8-12.9 12.9-12.9h32.3c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H77.6z"/>
+    </svg>
+  );
+}
+
+function DiscordIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+      <path d="M20.317 4.369A19.79 19.79 0 0 0 16.558 3a13.9 13.9 0 0 0-.653 1.335 18.27 18.27 0 0 0-5.487 0A13 13 0 0 0 9.765 3a19.74 19.74 0 0 0-3.762 1.369c-2.4 3.573-3.05 7.056-2.725 10.492a19.87 19.87 0 0 0 6.06 3.06 14.3 14.3 0 0 0 1.298-2.104 12.85 12.85 0 0 1-2.041-.98c.171-.126.339-.257.5-.39a14.16 14.16 0 0 0 12.11 0c.163.134.331.265.5.39a12.9 12.9 0 0 1-2.043.98 14.31 14.31 0 0 0 1.298 2.103 19.85 19.85 0 0 0 6.061-3.059c.381-3.988-.652-7.44-2.723-10.494zM8.68 14.4c-1.183 0-2.157-1.096-2.157-2.442 0-1.347.955-2.443 2.157-2.443 1.203 0 2.176 1.096 2.157 2.443 0 1.346-.954 2.442-2.157 2.442zm6.638 0c-1.184 0-2.157-1.096-2.157-2.442 0-1.347.955-2.443 2.157-2.443 1.203 0 2.176 1.096 2.157 2.443 0 1.346-.954 2.442-2.157 2.442z"/>
     </svg>
   );
 }

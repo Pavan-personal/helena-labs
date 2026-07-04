@@ -11,18 +11,21 @@ export async function joinChannelAction(formData: FormData) {
   const [channelId, channelName] = raw.split('|');
   if (!channelId || !channelName) return;
 
-  const res = await fetch('https://slack.com/api/conversations.join', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${workspace.bot_token}`,
-      'Content-Type': 'application/json; charset=utf-8'
-    },
-    body: JSON.stringify({ channel: channelId })
-  });
-  const json = (await res.json()) as { ok: boolean; error?: string };
-  if (!json.ok && json.error && json.error !== 'already_in_channel') {
-    console.error('conversations.join failed:', json.error);
+  if (workspace.chat_platform === 'slack' && workspace.bot_token) {
+    const res = await fetch('https://slack.com/api/conversations.join', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${workspace.bot_token}`,
+        'Content-Type': 'application/json; charset=utf-8'
+      },
+      body: JSON.stringify({ channel: channelId })
+    });
+    const json = (await res.json()) as { ok: boolean; error?: string };
+    if (!json.ok && json.error && json.error !== 'already_in_channel') {
+      console.error('conversations.join failed:', json.error);
+    }
   }
+  // For Discord, no explicit join is needed. The bot is already in the guild.
 
   await setIncidentChannel(workspace.id, channelId, channelName);
   redirect('/dashboard');

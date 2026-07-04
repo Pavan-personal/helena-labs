@@ -3,7 +3,7 @@ import { getWorkspaceBySecret, insertIncident, findSimilarByDedup } from '@helen
 import { extractFromImage } from '@helena/btl';
 import { GrafanaWebhookSchema } from '@helena/shared';
 import { normalizeGrafana } from '@/lib/normalize';
-import { postToSlack } from '@/lib/slack';
+import { postToChat } from '@/lib/chat';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -57,9 +57,9 @@ export async function POST(
     ) {
       const text = formatGrafanaCard(inserted.title, item.incident.severity, captions[0]);
       try {
-        await postToSlack(workspace.incident_channel_id, text, workspace.bot_token);
+        await postToChat(workspace, workspace.incident_channel_id, text);
       } catch (e) {
-        console.error('grafana slack post failed:', e);
+        console.error('grafana chat post failed:', e);
       }
     }
   }

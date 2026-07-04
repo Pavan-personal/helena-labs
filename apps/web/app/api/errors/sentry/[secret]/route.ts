@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getWorkspaceBySecret, insertIncident, findSimilarByDedup } from '@helena/db';
 import { SentryWebhookSchema } from '@helena/shared';
 import { normalizeSentry } from '@/lib/normalize';
-import { postToSlack } from '@/lib/slack';
+import { postToChat } from '@/lib/chat';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -36,9 +36,9 @@ export async function POST(
   ) {
     const text = `:bug: *Sentry* _${incident.severity}_\n*${inserted.title}*`;
     try {
-      await postToSlack(workspace.incident_channel_id, text, workspace.bot_token);
+      await postToChat(workspace, workspace.incident_channel_id, text);
     } catch (e) {
-      console.error('sentry slack post failed:', e);
+      console.error('sentry chat post failed:', e);
     }
   }
 

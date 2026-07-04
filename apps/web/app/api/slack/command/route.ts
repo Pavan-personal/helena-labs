@@ -30,12 +30,14 @@ export async function POST(req: Request) {
   }
 
   const workspace = await getWorkspaceBySlackId(teamId);
-  if (!workspace) {
+  if (!workspace || !workspace.bot_token) {
     return NextResponse.json({
       response_type: 'ephemeral',
       text: 'This Slack workspace is not installed. Visit helenalabs.vercel.app to add helena.'
     });
   }
+
+  const botToken = workspace.bot_token;
 
   // Ack immediately with an ephemeral holding message.
   // after() keeps the serverless runtime alive so the pipeline can post via response_url.
@@ -46,7 +48,7 @@ export async function POST(req: Request) {
         query: text,
         channelId,
         responseUrl,
-        botToken: workspace.bot_token
+        botToken
       });
     } catch (e) {
       console.error('processQuery failed:', e);

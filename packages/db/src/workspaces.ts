@@ -1,10 +1,15 @@
 import { getServerClient } from './client';
 
+export type ChatPlatform = 'slack' | 'discord';
+
 export interface WorkspaceRow {
   id: string;
-  slack_team_id: string;
-  slack_team_name: string;
-  bot_token: string;
+  chat_platform: ChatPlatform;
+  slack_team_id: string | null;
+  slack_team_name: string | null;
+  bot_token: string | null;
+  discord_guild_id: string | null;
+  discord_guild_name: string | null;
   webhook_secret: string;
   installer_email: string | null;
   installer_user_id: string | null;
@@ -81,6 +86,14 @@ export interface UpsertWorkspaceFromSlackInput {
   installerEmail?: string;
 }
 
+export interface UpsertWorkspaceFromDiscordInput {
+  discordGuildId: string;
+  discordGuildName: string;
+  botToken: string;
+  installerUserId?: string;
+  installerEmail?: string;
+}
+
 /**
  * Called after a successful Slack OAuth exchange. Creates the workspace row
  * if new, updates the bot_token if the team reinstalls. Never overwrites the
@@ -116,6 +129,7 @@ export async function upsertWorkspaceFromSlack(
   const { data, error } = await db
     .from('workspaces')
     .insert({
+      chat_platform: 'slack',
       slack_team_id: input.slackTeamId,
       slack_team_name: input.slackTeamName,
       bot_token: input.botToken,
@@ -126,6 +140,61 @@ export async function upsertWorkspaceFromSlack(
     .single();
   if (error || !data) throw new Error(`Insert workspace failed: ${error?.message}`);
   return data as WorkspaceRow;
+}
+
+export async function upsertWorkspaceFromDiscord(
+  input: UpsertWorkspaceFromDiscordInput
+): Promise<WorkspaceRow> {
+  const db = getServerClient();
+
+  const { data: existing } = await db
+    .from('workspaces')
+    .select('*')
+    .eq('discord_guild_id', input.discordGuildId)
+    .maybeSingle();
+
+  if (existing) {
+    const { data, error } = await db
+      .from('workspaces')
+      .update({
+        discord_guild_name: input.discordGuildName,
+        bot_token: input.botToken,
+        installer_user_id: input.installerUserId ?? (existing as WorkspaceRow).installer_user_id,
+        installer_email: input.installerEmail ?? (existing as WorkspaceRow).installer_email
+      })
+      .eq('id', (existing as WorkspaceRow).id)
+      .select('*')
+      .single();
+    if (error || !data) throw new Error(`Update workspace failed: ${error?.message}`);
+    return data as WorkspaceRow;
+  }
+
+  const { data, error } = await db
+    .from('workspaces')
+    .insert({
+      chat_platform: 'discord',
+      discord_guild_id: input.discordGuildId,
+      discord_guild_name: input.discordGuildName,
+      bot_token: input.botToken,
+      installer_user_id: input.installerUserId ?? null,
+      installer_email: input.installerEmail ?? null
+    })
+    .select('*')
+    .single();
+  if (error || !data) throw new Error(`Insert workspace failed: ${error?.message}`);
+  return data as WorkspaceRow;
+}
+
+export async function getWorkspaceByDiscordGuildId(
+  guildId: string
+): Promise<WorkspaceRow | null> {
+  const db = getServerClient();
+  const { data } = await db
+    .from('workspaces')
+    .select('*')
+    .eq('discord_guild_id', guildId)
+    .maybeSingle();
+  return (data as WorkspaceRow) ?? null;
 }
 
 export async function setIncidentChannel(

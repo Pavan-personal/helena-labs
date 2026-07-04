@@ -68,10 +68,10 @@ export async function POST(req: Request) {
   }
 
   const workspace = await getWorkspaceBySlackId(payload.team_id);
-  if (!workspace) {
-    // Slack team is not installed, silently ack.
+  if (!workspace || !workspace.bot_token) {
     return NextResponse.json({ ok: true });
   }
+  const botToken = workspace.bot_token;
 
   const captions: string[] = [];
   if (ev.files && ev.files.length > 0) {
@@ -79,7 +79,7 @@ export async function POST(req: Request) {
       const src = f.url_private_download ?? f.url_private;
       if (!src) continue;
       if (!f.mimetype?.startsWith('image/')) continue;
-      const buf = await fetchSlackFile(src, workspace.bot_token);
+      const buf = await fetchSlackFile(src, botToken);
       if (!buf) continue;
       try {
         const vision = await extractFromImage({

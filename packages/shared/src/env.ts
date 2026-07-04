@@ -13,6 +13,12 @@ const EnvSchema = z.object({
   SLACK_SIGNING_SECRET: z.string().min(1),
   SLACK_BOT_TOKEN: z.string().min(1),
 
+  DISCORD_APPLICATION_ID: z.string().optional(),
+  DISCORD_PUBLIC_KEY: z.string().optional(),
+  DISCORD_CLIENT_ID: z.string().optional(),
+  DISCORD_CLIENT_SECRET: z.string().optional(),
+  DISCORD_BOT_TOKEN: z.string().optional(),
+
   GRAFANA_WEBHOOK_SECRET: z.string().min(1),
   SENTRY_WEBHOOK_TOKEN: z.string().min(1),
   GENERIC_WEBHOOK_KEY: z.string().min(1),

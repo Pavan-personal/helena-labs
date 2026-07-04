@@ -6,7 +6,7 @@ import {
   extractTopFrames,
   type NormalizedIncident
 } from '@helena/shared';
-import { postToSlack } from '@/lib/slack';
+import { postToChat } from '@/lib/chat';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -53,9 +53,9 @@ export async function POST(
   ) {
     const text = `:warning: *${parsed.data.source}* _${incident.severity}_\n*${inserted.title}*\n${parsed.data.message}`;
     try {
-      await postToSlack(workspace.incident_channel_id, text, workspace.bot_token);
+      await postToChat(workspace, workspace.incident_channel_id, text);
     } catch (e) {
-      console.error('generic slack post failed:', e);
+      console.error('generic chat post failed:', e);
     }
   }
 

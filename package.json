@@ -9,7 +9,8 @@
     "start": "pnpm -C apps/web start",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
-    "migrate": "node --env-file=apps/web/.env.local scripts/migrate.mjs"
+    "migrate": "node --env-file=apps/web/.env.local scripts/migrate.mjs",
+    "discord:register": "node --env-file=apps/web/.env.local scripts/register-discord-commands.mjs"
   },
   "engines": {
     "node": ">=20.0.0",
