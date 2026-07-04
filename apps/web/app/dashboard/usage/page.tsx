@@ -1,9 +1,10 @@
-import { getDefaultWorkspace, usageSummary } from '@helena/db';
+import { usageSummary } from '@helena/db';
+import { requireWorkspace } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
 export default async function UsagePage() {
-  const workspace = await getDefaultWorkspace();
+  const workspace = await requireWorkspace();
   const usage = await usageSummary(workspace.id);
 
   return (

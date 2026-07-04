@@ -1,8 +1,7 @@
 import { NextResponse, after } from 'next/server';
-import { getOrCreateWorkspace, searchIncidents, getIncidentsByIds } from '@helena/db';
+import { getWorkspaceBySlackId, searchIncidents, getIncidentsByIds } from '@helena/db';
 import { rerankCandidates, synthesizeAnswer } from '@helena/btl';
 import { verifySlackSignature, postToSlack } from '@/lib/slack';
-import { loadEnv } from '@helena/shared';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -30,12 +29,13 @@ export async function POST(req: Request) {
     });
   }
 
-  const env = loadEnv();
-  const workspace = await getOrCreateWorkspace({
-    slackTeamId: teamId,
-    slackTeamName: teamId,
-    botToken: env.SLACK_BOT_TOKEN
-  });
+  const workspace = await getWorkspaceBySlackId(teamId);
+  if (!workspace) {
+    return NextResponse.json({
+      response_type: 'ephemeral',
+      text: 'This Slack workspace is not installed. Visit helenalabs.vercel.app to add helena.'
+    });
+  }
 
   // Ack immediately with an ephemeral holding message.
   // after() keeps the serverless runtime alive so the pipeline can post via response_url.

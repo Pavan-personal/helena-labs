@@ -16,6 +16,12 @@ create table workspaces (
   slack_team_id text unique not null,
   slack_team_name text not null,
   bot_token text not null,
+  webhook_secret text unique not null default encode(gen_random_bytes(24), 'hex'),
+  installer_email text,
+  installer_user_id text,
+  incident_channel_id text,
+  incident_channel_name text,
+  onboarded boolean not null default false,
   created_at timestamptz not null default now()
 );
 

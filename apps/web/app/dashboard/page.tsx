@@ -1,9 +1,10 @@
-import { getDefaultWorkspace, listIncidents, listDrafts, listRunbooks, usageSummary } from '@helena/db';
+import { listIncidents, listDrafts, listRunbooks, usageSummary } from '@helena/db';
+import { requireWorkspace } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardHome() {
-  const workspace = await getDefaultWorkspace();
+  const workspace = await requireWorkspace();
   const [incidents, drafts, runbooks, usage] = await Promise.all([
     listIncidents(workspace.id, { limit: 10 }),
     listDrafts(workspace.id, 'draft'),

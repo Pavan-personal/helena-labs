@@ -1,4 +1,5 @@
-import { getDefaultWorkspace, listIncidents } from '@helena/db';
+import { listIncidents } from '@helena/db';
+import { requireWorkspace } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +12,7 @@ const SOURCE_STYLES: Record<string, string> = {
 };
 
 export default async function IncidentsPage() {
-  const workspace = await getDefaultWorkspace();
+  const workspace = await requireWorkspace();
   const incidents = await listIncidents(workspace.id, { limit: 200 });
 
   return (

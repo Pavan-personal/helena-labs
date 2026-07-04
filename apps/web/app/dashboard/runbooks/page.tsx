@@ -1,9 +1,10 @@
-import { getDefaultWorkspace, listRunbooks } from '@helena/db';
+import { listRunbooks } from '@helena/db';
+import { requireWorkspace } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
 export default async function RunbooksPage() {
-  const workspace = await getDefaultWorkspace();
+  const workspace = await requireWorkspace();
   const runbooks = await listRunbooks(workspace.id);
 
   return (

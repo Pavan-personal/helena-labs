@@ -1,10 +1,11 @@
-import { getDefaultWorkspace, listDrafts } from '@helena/db';
+import { listDrafts } from '@helena/db';
+import { requireWorkspace } from '@/lib/session';
 import { approveDraftAction, rejectDraftAction } from './actions';
 
 export const dynamic = 'force-dynamic';
 
 export default async function DraftsPage() {
-  const workspace = await getDefaultWorkspace();
+  const workspace = await requireWorkspace();
   const drafts = await listDrafts(workspace.id, 'draft');
 
   return (

@@ -1,21 +1,19 @@
 import { NextResponse } from 'next/server';
-import { getDefaultWorkspace, insertIncident, findSimilarByDedup } from '@helena/db';
-import { SentryWebhookSchema, loadEnv } from '@helena/shared';
+import { getWorkspaceBySecret, insertIncident, findSimilarByDedup } from '@helena/db';
+import { SentryWebhookSchema } from '@helena/shared';
 import { normalizeSentry } from '@/lib/normalize';
 import { postToSlack } from '@/lib/slack';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export async function POST(req: Request) {
-  const env = loadEnv();
-  const authz = req.headers.get('authorization') ?? '';
-  const providedToken =
-    req.headers.get('sentry-hook-signature') ??
-    req.headers.get('x-sentry-token') ??
-    authz.replace(/^Bearer\s+/i, '');
-
-  if (providedToken !== env.SENTRY_WEBHOOK_TOKEN) {
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ secret: string }> }
+) {
+  const { secret } = await params;
+  const workspace = await getWorkspaceBySecret(secret);
+  if (!workspace) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
@@ -25,7 +23,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'bad payload' }, { status: 400 });
   }
 
-  const workspace = await getDefaultWorkspace();
   const incident = normalizeSentry(parsed.data);
   const inserted = await insertIncident(workspace.id, incident);
 
@@ -33,11 +30,13 @@ export async function POST(req: Request) {
     ? (await findSimilarByDedup(workspace.id, incident.dedupKey, 2)).length <= 1
     : true;
 
-  if (isNovel || incident.severity === 'critical' || incident.severity === 'high') {
-    const alertChannel = process.env.SLACK_ALERT_CHANNEL ?? '#incidents';
+  if (
+    workspace.incident_channel_id &&
+    (isNovel || incident.severity === 'critical' || incident.severity === 'high')
+  ) {
     const text = `:bug: *Sentry* _${incident.severity}_\n*${inserted.title}*`;
     try {
-      await postToSlack(alertChannel, text, workspace.bot_token);
+      await postToSlack(workspace.incident_channel_id, text, workspace.bot_token);
     } catch (e) {
       console.error('sentry slack post failed:', e);
     }

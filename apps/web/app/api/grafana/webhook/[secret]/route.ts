@@ -1,28 +1,30 @@
 import { NextResponse } from 'next/server';
-import { getDefaultWorkspace, insertIncident, findSimilarByDedup } from '@helena/db';
+import { getWorkspaceBySecret, insertIncident, findSimilarByDedup } from '@helena/db';
 import { extractFromImage } from '@helena/btl';
-import { GrafanaWebhookSchema, loadEnv } from '@helena/shared';
+import { GrafanaWebhookSchema } from '@helena/shared';
 import { normalizeGrafana } from '@/lib/normalize';
 import { postToSlack } from '@/lib/slack';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 30;
 
-export async function POST(req: Request) {
-  const env = loadEnv();
-  const url = new URL(req.url);
-  const secret = url.searchParams.get('secret');
-  if (secret !== env.GRAFANA_WEBHOOK_SECRET) {
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ secret: string }> }
+) {
+  const { secret } = await params;
+  const workspace = await getWorkspaceBySecret(secret);
+  if (!workspace) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
   const body = await req.json();
   const parsed = GrafanaWebhookSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: 'bad payload', details: parsed.error.flatten() }, { status: 400 });
+    return NextResponse.json({ error: 'bad payload' }, { status: 400 });
   }
 
-  const workspace = await getDefaultWorkspace();
   const normalized = normalizeGrafana(parsed.data);
 
   for (const item of normalized) {
@@ -49,11 +51,13 @@ export async function POST(req: Request) {
       ? (await findSimilarByDedup(workspace.id, item.incident.dedupKey, 2)).length <= 1
       : true;
 
-    if (isNovel || item.incident.severity === 'critical' || item.incident.severity === 'high') {
-      const alertChannel = process.env.SLACK_ALERT_CHANNEL ?? '#incidents';
+    if (
+      workspace.incident_channel_id &&
+      (isNovel || item.incident.severity === 'critical' || item.incident.severity === 'high')
+    ) {
       const text = formatGrafanaCard(inserted.title, item.incident.severity, captions[0]);
       try {
-        await postToSlack(alertChannel, text, workspace.bot_token);
+        await postToSlack(workspace.incident_channel_id, text, workspace.bot_token);
       } catch (e) {
         console.error('grafana slack post failed:', e);
       }

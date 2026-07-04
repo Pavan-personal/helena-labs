@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
-import { getOrCreateWorkspace, insertIncident } from '@helena/db';
+import { getWorkspaceBySlackId, insertIncident } from '@helena/db';
 import { extractFromImage } from '@helena/btl';
 import { verifySlackSignature, fetchSlackFile, bufferToDataUrl } from '@/lib/slack';
-import { loadEnv } from '@helena/shared';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -64,12 +63,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true });
   }
 
-  const env = loadEnv();
-  const workspace = await getOrCreateWorkspace({
-    slackTeamId: payload.team_id ?? 'default',
-    slackTeamName: payload.team_id ?? 'Default',
-    botToken: env.SLACK_BOT_TOKEN
-  });
+  if (!payload.team_id) {
+    return NextResponse.json({ ok: true });
+  }
+
+  const workspace = await getWorkspaceBySlackId(payload.team_id);
+  if (!workspace) {
+    // Slack team is not installed, silently ack.
+    return NextResponse.json({ ok: true });
+  }
 
   const captions: string[] = [];
   if (ev.files && ev.files.length > 0) {
