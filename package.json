@@ -8,13 +8,15 @@
     "build": "pnpm -C apps/web build",
     "start": "pnpm -C apps/web start",
     "lint": "pnpm -r lint",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "migrate": "node --env-file=apps/web/.env.local scripts/migrate.mjs"
   },
   "engines": {
     "node": ">=20.0.0",
     "pnpm": ">=9.0.0"
   },
   "devDependencies": {
+    "postgres": "^3.4.9",
     "typescript": "5.6.3"
   }
 }
