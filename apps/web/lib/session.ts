@@ -35,31 +35,31 @@ function decodeSession(token: string, secret: string): string | null {
   return wid;
 }
 
+function buildCookieString(name: string, value: string, maxAge: number): string {
+  const parts = [
+    `${name}=${value}`,
+    'Path=/',
+    'HttpOnly',
+    'Secure',
+    'SameSite=Lax',
+    `Max-Age=${maxAge}`
+  ];
+  return parts.join('; ');
+}
+
 /**
- * Attach the session cookie to a NextResponse.
- * Use this inside Route Handlers that return a redirect, because
- * cookies() writes are dropped when a redirect NextResponse is returned.
+ * Attach the session cookie to a NextResponse via raw Set-Cookie header.
+ * res.cookies.set has proven unreliable when combined with redirect responses
+ * in Next.js 16, so we do the header write ourselves.
  */
 export function attachSessionCookie(res: NextResponse, workspaceId: string): NextResponse {
   const token = encodeSessionToken(workspaceId);
-  res.cookies.set(COOKIE_NAME, token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'lax',
-    path: '/',
-    maxAge: MAX_AGE_SECONDS
-  });
+  res.headers.append('Set-Cookie', buildCookieString(COOKIE_NAME, token, MAX_AGE_SECONDS));
   return res;
 }
 
 export function clearSessionOnResponse(res: NextResponse): NextResponse {
-  res.cookies.set(COOKIE_NAME, '', {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 0
-  });
+  res.headers.append('Set-Cookie', buildCookieString(COOKIE_NAME, '', 0));
   return res;
 }
 
