@@ -1,18 +1,20 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { NextResponse } from 'next/server';
 import { getWorkspaceById, type WorkspaceRow } from '@helena/db';
 import { loadEnv } from '@helena/shared';
 
-const COOKIE_NAME = 'helena_session';
+export const COOKIE_NAME = 'helena_session';
 const MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 
 function sign(value: string, secret: string): string {
   return createHmac('sha256', secret).update(value).digest('hex');
 }
 
-function encodeSession(workspaceId: string, secret: string): string {
-  const sig = sign(workspaceId, secret);
+export function encodeSessionToken(workspaceId: string): string {
+  const env = loadEnv();
+  const sig = sign(workspaceId, env.SLACK_SIGNING_SECRET);
   return `${workspaceId}.${sig}`;
 }
 
@@ -33,22 +35,32 @@ function decodeSession(token: string, secret: string): string | null {
   return wid;
 }
 
-export async function setSessionCookie(workspaceId: string): Promise<void> {
-  const env = loadEnv();
-  const token = encodeSession(workspaceId, env.SLACK_SIGNING_SECRET);
-  const jar = await cookies();
-  jar.set(COOKIE_NAME, token, {
+/**
+ * Attach the session cookie to a NextResponse.
+ * Use this inside Route Handlers that return a redirect, because
+ * cookies() writes are dropped when a redirect NextResponse is returned.
+ */
+export function attachSessionCookie(res: NextResponse, workspaceId: string): NextResponse {
+  const token = encodeSessionToken(workspaceId);
+  res.cookies.set(COOKIE_NAME, token, {
     httpOnly: true,
     secure: true,
     sameSite: 'lax',
     path: '/',
     maxAge: MAX_AGE_SECONDS
   });
+  return res;
 }
 
-export async function clearSessionCookie(): Promise<void> {
-  const jar = await cookies();
-  jar.delete(COOKIE_NAME);
+export function clearSessionOnResponse(res: NextResponse): NextResponse {
+  res.cookies.set(COOKIE_NAME, '', {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 0
+  });
+  return res;
 }
 
 export async function getWorkspaceFromSession(): Promise<WorkspaceRow | null> {

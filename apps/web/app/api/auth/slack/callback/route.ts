@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { upsertWorkspaceFromSlack } from '@helena/db';
 import { loadEnv } from '@helena/shared';
-import { setSessionCookie } from '@/lib/session';
+import { attachSessionCookie } from '@/lib/session';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -42,13 +42,13 @@ export async function GET(req: Request) {
     redirect_uri: redirectUri
   });
 
-  const res = await fetch('https://slack.com/api/oauth.v2.access', {
+  const oauthRes = await fetch('https://slack.com/api/oauth.v2.access', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: form.toString()
   });
 
-  const payload = (await res.json()) as SlackOAuthResponse;
+  const payload = (await oauthRes.json()) as SlackOAuthResponse;
 
   if (!payload.ok || !payload.access_token || !payload.team?.id) {
     const back = new URL('/', url.origin);
@@ -81,8 +81,7 @@ export async function GET(req: Request) {
     installerEmail
   });
 
-  await setSessionCookie(workspace.id);
-
   const dest = workspace.onboarded ? '/dashboard' : '/dashboard/onboard';
-  return NextResponse.redirect(new URL(dest, url.origin));
+  const res = NextResponse.redirect(new URL(dest, url.origin));
+  return attachSessionCookie(res, workspace.id);
 }
