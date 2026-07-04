@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { NextResponse } from 'next/server';
 import { getWorkspaceById, type WorkspaceRow } from '@helena/db';
@@ -66,12 +66,47 @@ export function clearSessionOnResponse(res: NextResponse): NextResponse {
   return res;
 }
 
+function parseCookieHeader(raw: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const part of raw.split(';')) {
+    const trimmed = part.trim();
+    if (!trimmed) continue;
+    const eq = trimmed.indexOf('=');
+    if (eq < 0) continue;
+    const name = trimmed.slice(0, eq);
+    const value = trimmed.slice(eq + 1);
+    if (name) out[name] = value;
+  }
+  return out;
+}
+
 export async function getWorkspaceFromSession(): Promise<WorkspaceRow | null> {
   const env = loadEnv();
-  const jar = await cookies();
-  const raw = jar.get(COOKIE_NAME)?.value;
-  if (!raw) return null;
-  const workspaceId = decodeSession(raw, env.SLACK_SIGNING_SECRET);
+
+  // Primary: Next.js cookies() jar.
+  let token: string | undefined;
+  try {
+    const jar = await cookies();
+    token = jar.get(COOKIE_NAME)?.value;
+  } catch {
+    // ignore, we'll try headers fallback
+  }
+
+  // Fallback: raw Cookie header from the request. Next.js 16 has cases
+  // where cookies() misses a cookie that is present in the request headers.
+  if (!token) {
+    try {
+      const headerBag = await headers();
+      const rawCookie = headerBag.get('cookie') ?? '';
+      const parsed = parseCookieHeader(rawCookie);
+      token = parsed[COOKIE_NAME];
+    } catch {
+      // ignore
+    }
+  }
+
+  if (!token) return null;
+  const workspaceId = decodeSession(token, env.SLACK_SIGNING_SECRET);
   if (!workspaceId) return null;
   return getWorkspaceById(workspaceId);
 }
