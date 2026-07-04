@@ -55,14 +55,27 @@ export async function getWorkspaceBySlackId(slackTeamId: string): Promise<Worksp
  */
 export async function getDefaultWorkspace(): Promise<WorkspaceRow> {
   const db = getServerClient();
-  const { data: existing } = await db
+
+  // Prefer a real Slack team over the seed fallback so the dashboard shows
+  // ingested data even when a leftover 'default' seed row exists.
+  const { data: real } = await db
+    .from('workspaces')
+    .select('*')
+    .neq('slack_team_id', 'default')
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (real) return real as WorkspaceRow;
+
+  const { data: fallback } = await db
     .from('workspaces')
     .select('*')
     .order('created_at', { ascending: true })
     .limit(1)
     .maybeSingle();
 
-  if (existing) return existing as WorkspaceRow;
+  if (fallback) return fallback as WorkspaceRow;
 
   return getOrCreateWorkspace({
     slackTeamId: 'default',

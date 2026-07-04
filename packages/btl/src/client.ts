@@ -4,7 +4,7 @@ import { logUsage } from '@helena/db';
 import { estimateCostCents } from './pricing';
 
 export const VISION_MODEL = 'gpt-4o-mini';
-export const TEXT_MODEL = 'deepseek-chat';
+export const TEXT_MODEL = 'deepseek-v4-flash';
 
 let cached: OpenAI | null = null;
 
