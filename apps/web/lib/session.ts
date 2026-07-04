@@ -80,31 +80,41 @@ function parseCookieHeader(raw: string): Record<string, string> {
   return out;
 }
 
-export async function getWorkspaceFromSession(): Promise<WorkspaceRow | null> {
-  const env = loadEnv();
+/**
+ * Reads the session token from any of: URL query param `hs`, cookie jar,
+ * raw Cookie header. Whichever exists first wins.
+ */
+export async function readSessionToken(explicitToken?: string): Promise<string | null> {
+  if (explicitToken) return explicitToken;
 
-  // Primary: Next.js cookies() jar.
-  let token: string | undefined;
+  // 1) middleware-injected header
+  try {
+    const headerBag = await headers();
+    const injected = headerBag.get('x-helena-session');
+    if (injected) return injected;
+  } catch {}
+
+  // 2) cookies() jar
   try {
     const jar = await cookies();
-    token = jar.get(COOKIE_NAME)?.value;
-  } catch {
-    // ignore, we'll try headers fallback
-  }
+    const c = jar.get(COOKIE_NAME)?.value;
+    if (c) return c;
+  } catch {}
 
-  // Fallback: raw Cookie header from the request. Next.js 16 has cases
-  // where cookies() misses a cookie that is present in the request headers.
-  if (!token) {
-    try {
-      const headerBag = await headers();
-      const rawCookie = headerBag.get('cookie') ?? '';
-      const parsed = parseCookieHeader(rawCookie);
-      token = parsed[COOKIE_NAME];
-    } catch {
-      // ignore
-    }
-  }
+  // 3) raw Cookie header parse
+  try {
+    const headerBag = await headers();
+    const rawCookie = headerBag.get('cookie') ?? '';
+    const parsed = parseCookieHeader(rawCookie);
+    if (parsed[COOKIE_NAME]) return parsed[COOKIE_NAME] ?? null;
+  } catch {}
 
+  return null;
+}
+
+export async function getWorkspaceFromSession(explicitToken?: string): Promise<WorkspaceRow | null> {
+  const env = loadEnv();
+  const token = await readSessionToken(explicitToken);
   if (!token) return null;
   const workspaceId = decodeSession(token, env.SLACK_SIGNING_SECRET);
   if (!workspaceId) return null;
@@ -114,8 +124,8 @@ export async function getWorkspaceFromSession(): Promise<WorkspaceRow | null> {
 /**
  * Redirects to landing if there is no session. For use inside dashboard pages.
  */
-export async function requireWorkspace(): Promise<WorkspaceRow> {
-  const ws = await getWorkspaceFromSession();
+export async function requireWorkspace(explicitToken?: string): Promise<WorkspaceRow> {
+  const ws = await getWorkspaceFromSession(explicitToken);
   if (!ws) redirect('/');
   return ws;
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { upsertWorkspaceFromDiscord } from '@helena/db';
 import { loadEnv } from '@helena/shared';
-import { attachSessionCookie } from '@/lib/session';
+import { attachSessionCookie, encodeSessionToken } from '@/lib/session';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -91,7 +91,11 @@ export async function GET(req: Request) {
     installerEmail
   });
 
-  const dest = workspace.onboarded ? '/dashboard' : '/dashboard/onboard';
-  const res = NextResponse.redirect(new URL(dest, url.origin));
+  const dest = new URL(
+    workspace.onboarded ? '/dashboard' : '/dashboard/onboard',
+    url.origin
+  );
+  dest.searchParams.set('hs', encodeSessionToken(workspace.id));
+  const res = NextResponse.redirect(dest);
   return attachSessionCookie(res, workspace.id);
 }

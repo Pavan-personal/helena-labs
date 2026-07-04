@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { requireWorkspace } from '@/lib/session';
+import { requireWorkspace, encodeSessionToken } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +15,8 @@ const NAV = [
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const workspace = await requireWorkspace();
+  const token = encodeSessionToken(workspace.id);
+  const withToken = (href: string) => `${href}?hs=${encodeURIComponent(token)}`;
 
   return (
     <div className="min-h-screen grid grid-cols-[240px_1fr]">
@@ -33,7 +35,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           {NAV.map((item) => (
             <Link
               key={item.href}
-              href={item.href}
+              href={withToken(item.href)}
               className="block px-3 py-2 rounded text-sm text-neutral-300 hover:bg-neutral-900"
             >
               {item.label}

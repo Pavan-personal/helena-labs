@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerClient } from '@helena/db';
-import { attachSessionCookie } from '@/lib/session';
+import { attachSessionCookie, encodeSessionToken } from '@/lib/session';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -33,8 +33,9 @@ export async function GET(req: Request) {
       discord_guild_name: string | null;
       onboarded: boolean;
     };
-    const dest = w.onboarded ? '/dashboard' : '/dashboard/onboard';
-    const res = NextResponse.redirect(new URL(dest, url.origin));
+    const dest = new URL(w.onboarded ? '/dashboard' : '/dashboard/onboard', url.origin);
+    dest.searchParams.set('hs', encodeSessionToken(w.id));
+    const res = NextResponse.redirect(dest);
     return attachSessionCookie(res, w.id);
   }
 

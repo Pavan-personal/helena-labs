@@ -1,12 +1,21 @@
 import { NextResponse } from 'next/server';
 import { setIncidentChannel } from '@helena/db';
-import { getWorkspaceFromSession, attachSessionCookie } from '@/lib/session';
+import {
+  getWorkspaceFromSession,
+  attachSessionCookie,
+  encodeSessionToken
+} from '@/lib/session';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
-  const workspace = await getWorkspaceFromSession();
+  const form = await req.formData();
+  const formToken = form.get('hs')?.toString();
+  const urlToken = new URL(req.url).searchParams.get('hs') ?? undefined;
+  const explicitToken = formToken || urlToken;
+
+  const workspace = await getWorkspaceFromSession(explicitToken);
   if (!workspace) {
     const raw = req.headers.get('cookie') ?? '';
     const preview = raw.slice(0, 120);
@@ -14,17 +23,23 @@ export async function POST(req: Request) {
     const target = new URL('/?install_error=no_session', new URL(req.url).origin);
     target.searchParams.set('cookie_len', String(raw.length));
     target.searchParams.set('cookie_preview', preview);
+    target.searchParams.set('had_form_token', formToken ? '1' : '0');
     return NextResponse.redirect(target);
   }
 
-  const form = await req.formData();
   const raw = form.get('channel')?.toString();
   if (!raw) {
-    return NextResponse.redirect(new URL('/dashboard/onboard?err=no_channel', new URL(req.url).origin));
+    const dest = new URL('/dashboard/onboard', new URL(req.url).origin);
+    dest.searchParams.set('err', 'no_channel');
+    dest.searchParams.set('hs', encodeSessionToken(workspace.id));
+    return NextResponse.redirect(dest);
   }
   const [channelId, channelName] = raw.split('|');
   if (!channelId || !channelName) {
-    return NextResponse.redirect(new URL('/dashboard/onboard?err=bad_channel', new URL(req.url).origin));
+    const dest = new URL('/dashboard/onboard', new URL(req.url).origin);
+    dest.searchParams.set('err', 'bad_channel');
+    dest.searchParams.set('hs', encodeSessionToken(workspace.id));
+    return NextResponse.redirect(dest);
   }
 
   if (workspace.chat_platform === 'slack' && workspace.bot_token) {
@@ -50,9 +65,14 @@ export async function POST(req: Request) {
     await setIncidentChannel(workspace.id, channelId, channelName);
   } catch (e) {
     console.error('setIncidentChannel failed:', e);
-    return NextResponse.redirect(new URL('/dashboard/onboard?err=save_failed', new URL(req.url).origin));
+    const dest = new URL('/dashboard/onboard', new URL(req.url).origin);
+    dest.searchParams.set('err', 'save_failed');
+    dest.searchParams.set('hs', encodeSessionToken(workspace.id));
+    return NextResponse.redirect(dest);
   }
 
-  const res = NextResponse.redirect(new URL('/dashboard', new URL(req.url).origin));
+  const dest = new URL('/dashboard', new URL(req.url).origin);
+  dest.searchParams.set('hs', encodeSessionToken(workspace.id));
+  const res = NextResponse.redirect(dest);
   return attachSessionCookie(res, workspace.id);
 }

@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { requireWorkspace } from '@/lib/session';
+import { requireWorkspace, encodeSessionToken } from '@/lib/session';
 import { fetchDiscordChannels } from '@/lib/discord';
 
 export const dynamic = 'force-dynamic';
@@ -25,8 +25,14 @@ async function listSlackChannels(botToken: string): Promise<Channel[]> {
   return (json.channels ?? []).sort((a, b) => (b.num_members ?? 0) - (a.num_members ?? 0));
 }
 
-export default async function OnboardPage() {
-  const workspace = await requireWorkspace();
+export default async function OnboardPage({
+  searchParams
+}: {
+  searchParams: Promise<{ hs?: string }>;
+}) {
+  const params = await searchParams;
+  const workspace = await requireWorkspace(params.hs);
+  const token = encodeSessionToken(workspace.id);
 
   if (workspace.onboarded) {
     redirect('/dashboard');
@@ -64,6 +70,7 @@ export default async function OnboardPage() {
           </div>
         ) : (
           <form action="/api/onboard/select-channel" method="POST" className="space-y-4">
+            <input type="hidden" name="hs" value={token} />
             <div className="border border-neutral-800 rounded-lg divide-y divide-neutral-800 max-h-96 overflow-auto">
               {channels.map((c, i) => (
                 <label
