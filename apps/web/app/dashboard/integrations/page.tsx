@@ -16,82 +16,87 @@ export default async function IntegrationsPage() {
   const slashCommandUrl = `${origin}/api/slack/command`;
   const discordInteractionsUrl = `${origin}/api/discord/interactions`;
 
+  const isDiscord = workspace.chat_platform === 'discord';
+
   return (
     <div>
-      <h1 className="text-2xl font-semibold mb-1">Integrations</h1>
-      <p className="text-sm text-neutral-500 mb-8 max-w-2xl">
-        These endpoints are unique to your workspace. Paste each URL into the corresponding tool.
-        Anyone with a URL can push incidents to your memory, so treat them like secrets.
-      </p>
+      <div className="mb-8">
+        <div className="text-xs uppercase tracking-widest text-neutral-500 mb-1">
+          Configuration
+        </div>
+        <h1 className="text-3xl font-semibold tracking-tight text-white mb-2">Integrations</h1>
+        <p className="text-sm text-neutral-500 max-w-2xl">
+          Each endpoint below is unique to your workspace. Paste them into the corresponding tool.
+          Treat every URL like a secret &mdash; anyone with one can push data into your memory.
+        </p>
+      </div>
 
+      <SectionHeader label="Chat platform" count="1 connected" />
       <IntegrationCard
-        icon={
-          workspace.chat_platform === 'discord' ? (
-            <DiscordLogo />
-          ) : (
-            <SlackLogo />
-          )
-        }
-        title={workspace.chat_platform === 'discord' ? 'Discord' : 'Slack'}
-        subtitle={
-          workspace.chat_platform === 'discord'
-            ? workspace.discord_guild_name ?? 'Server'
-            : workspace.slack_team_name ?? 'Workspace'
-        }
-        connected={true}
+        icon={isDiscord ? <DiscordLogo /> : <SlackLogo />}
+        brand={isDiscord ? '#5865F2' : '#611f69'}
+        title={isDiscord ? 'Discord' : 'Slack'}
+        subtitle={isDiscord ? workspace.discord_guild_name ?? 'Server' : workspace.slack_team_name ?? 'Workspace'}
+        connected
         detail={
           workspace.incident_channel_name
-            ? `Ingesting from #${workspace.incident_channel_name}`
+            ? `Indexing #${workspace.incident_channel_name}`
             : 'Awaiting channel selection'
         }
         description={
-          workspace.chat_platform === 'discord'
-            ? 'Slash commands and message right-click actions are live in your server. Set the Interactions Endpoint URL below in the Discord Developer Portal.'
-            : 'Messages, screenshots, and threads posted in your incident channel are indexed automatically.'
+          isDiscord
+            ? 'Slash commands and message right-click actions are live in your server. Paste the URL below as the Interactions Endpoint in the Discord Developer Portal.'
+            : 'Every message, screenshot, and thread posted in your incident channel is indexed automatically. The slash command URL below powers /askoncall.'
         }
       >
-        {workspace.chat_platform === 'discord' ? (
-          <CopyRow label="Interactions Endpoint URL" value={discordInteractionsUrl} />
-        ) : (
-          <CopyRow label="Slash command URL" value={slashCommandUrl} />
-        )}
+        <CopyRow
+          label={isDiscord ? 'Interactions endpoint URL' : 'Slash command URL'}
+          value={isDiscord ? discordInteractionsUrl : slashCommandUrl}
+        />
       </IntegrationCard>
 
+      <SectionHeader label="Observability" count="0 connected" hint="wire up when ready" />
       <IntegrationCard
         icon={<GrafanaLogo />}
+        brand="#F46800"
         title="Grafana Cloud"
         subtitle="Alert webhook"
         connected={false}
-        detail="Not yet configured"
-        description="Grafana Alerting → Contact points → Add contact point → Webhook. Include the rendered panel image so vision can extract signal."
+        detail="Attach to any contact point"
+        description="Grafana Alerting → Contact points → Add contact point → Webhook. Include the rendered panel image so vision can extract signal automatically."
       >
         <CopyRow label="Webhook URL" value={grafanaUrl} />
       </IntegrationCard>
 
       <IntegrationCard
         icon={<SentryLogo />}
+        brand="#7553D6"
         title="Sentry"
         subtitle="Internal integration webhook"
         connected={false}
-        detail="Not yet configured"
-        description="Sentry → Settings → Integrations → Internal Integrations → Create. Alerts checkbox on."
+        detail="One integration per Sentry org"
+        description="Sentry → Settings → Custom integrations → Create new integration. Turn on the Alerts checkbox and add the URL below."
       >
         <CopyRow label="Webhook URL" value={sentryUrl} />
       </IntegrationCard>
 
+      <SectionHeader label="Custom" />
       <IntegrationCard
         icon={<WebhookLogo />}
+        brand="#71717a"
         title="Generic webhook"
         subtitle="Any tool that can POST JSON"
         connected={false}
-        detail="For Datadog, custom scripts, and one-off automations"
-        description="POST {title, message, stack?, source, severity?} to this URL."
+        detail="Datadog, cron jobs, custom scripts"
+        description="POST a JSON body with title, message, source, and severity. Everything else is optional."
       >
         <CopyRow label="Webhook URL" value={genericUrl} />
         <div className="mt-4">
-          <div className="text-xs uppercase tracking-widest text-neutral-500 mb-2">Example</div>
-          <div className="rounded-lg border border-neutral-900 bg-neutral-950 overflow-x-auto scrollbar-thin">
-            <pre className="text-xs text-neutral-400 p-4 whitespace-pre-wrap break-all">
+          <div className="text-[11px] uppercase tracking-widest text-neutral-500 mb-2">
+            Example request
+          </div>
+          <div className="rounded-lg border border-neutral-900 bg-black/40 overflow-x-auto scrollbar-thin">
+            <pre className="text-xs text-neutral-400 p-4 whitespace-pre-wrap break-all leading-relaxed">
 {`curl -X POST "${genericUrl}" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -108,8 +113,29 @@ export default async function IntegrationsPage() {
   );
 }
 
+function SectionHeader({
+  label,
+  count,
+  hint
+}: {
+  label: string;
+  count?: string;
+  hint?: string;
+}) {
+  return (
+    <div className="flex items-baseline justify-between mt-8 mb-3">
+      <div className="text-[11px] uppercase tracking-widest text-neutral-500">{label}</div>
+      <div className="text-[11px] text-neutral-600">
+        {count}
+        {hint && <span className="text-neutral-700"> · {hint}</span>}
+      </div>
+    </div>
+  );
+}
+
 function IntegrationCard({
   icon,
+  brand,
   title,
   subtitle,
   connected,
@@ -118,6 +144,7 @@ function IntegrationCard({
   children
 }: {
   icon: React.ReactNode;
+  brand: string;
   title: string;
   subtitle: string;
   connected: boolean;
@@ -126,38 +153,50 @@ function IntegrationCard({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="border border-neutral-800 rounded-xl p-5 mb-4 bg-neutral-950/40">
+    <div className="rounded-xl border border-neutral-800 bg-neutral-950/40 p-5 mb-3 hover:border-neutral-700 transition-colors">
       <div className="flex items-start gap-4 mb-3">
-        <div className="h-11 w-11 rounded-lg border border-neutral-800 bg-neutral-950 flex items-center justify-center shrink-0">
+        <div
+          className="h-12 w-12 rounded-xl flex items-center justify-center shrink-0 border border-neutral-800"
+          style={{ background: `linear-gradient(180deg, ${brand}18 0%, transparent 100%)` }}
+        >
           {icon}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-            <div className="text-base font-semibold text-neutral-100">{title}</div>
-            <span
-              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] uppercase tracking-widest ${
-                connected
-                  ? 'bg-emerald-950 text-emerald-300 border border-emerald-900'
-                  : 'bg-neutral-900 text-neutral-500 border border-neutral-800'
-              }`}
-            >
-              <span
-                className={`h-1.5 w-1.5 rounded-full ${
-                  connected ? 'bg-emerald-400' : 'bg-neutral-600'
-                }`}
-              />
-              {connected ? 'Connected' : 'Ready to connect'}
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <div className="text-base font-semibold text-neutral-50">{title}</div>
+            <StatusBadge connected={connected} />
+          </div>
+          <div className="flex items-center gap-2 text-xs text-neutral-500">
+            <span className="truncate" title={subtitle}>
+              {subtitle}
             </span>
+            <span className="text-neutral-700">·</span>
+            <span className="text-neutral-600 truncate">{detail}</span>
           </div>
-          <div className="text-xs text-neutral-500 truncate" title={subtitle}>
-            {subtitle}
-          </div>
-          <div className="text-xs text-neutral-600 mt-0.5">{detail}</div>
         </div>
       </div>
       <p className="text-sm text-neutral-400 leading-relaxed mb-4">{description}</p>
       {children}
     </div>
+  );
+}
+
+function StatusBadge({ connected }: { connected: boolean }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-widest font-medium ${
+        connected
+          ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-900/60'
+          : 'bg-neutral-900 text-neutral-500 border border-neutral-800'
+      }`}
+    >
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${
+          connected ? 'bg-emerald-400 animate-pulse' : 'bg-neutral-600'
+        }`}
+      />
+      {connected ? 'Connected' : 'Ready to connect'}
+    </span>
   );
 }
 
@@ -178,7 +217,7 @@ function GrafanaLogo() {
   return <SiGrafana size={22} color="#F46800" />;
 }
 function SentryLogo() {
-  return <SiSentry size={22} color="#362D59" />;
+  return <SiSentry size={22} color="#7553D6" />;
 }
 function WebhookLogo() {
   return <Webhook className="h-5 w-5 text-neutral-400" strokeWidth={1.5} />;
