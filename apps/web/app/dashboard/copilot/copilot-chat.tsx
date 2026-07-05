@@ -194,11 +194,23 @@ export function CopilotChat({
           })
         });
         if (!res.ok || !res.body) {
-          const err = await res.text().catch(() => '');
+          let humanError: string;
+          const raw = await res.text().catch(() => '');
+          if (res.status === 429) {
+            humanError = 'Too many chats running at once. Wait for one to finish and try again.';
+          } else if (res.status === 401) {
+            humanError = 'Session expired. Reload the page to sign in again.';
+          } else if (res.status === 409) {
+            humanError = 'This message was already sent. Refresh to see the reply.';
+          } else if (res.status >= 500) {
+            humanError = `Server error (${res.status}). Retry in a moment.`;
+          } else {
+            humanError = `HTTP ${res.status}: ${raw.slice(0, 160)}`;
+          }
           setTurns((prev) =>
             prev.map((t) =>
               t.turnId === turnId
-                ? { ...t, running: false, error: `HTTP ${res.status}: ${err.slice(0, 200)}` }
+                ? { ...t, running: false, error: humanError }
                 : t
             )
           );
