@@ -50,17 +50,15 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       <div className="h-screen grid grid-cols-[248px_1fr] overflow-hidden">
         <aside className="border-r border-neutral-800 bg-neutral-950 flex flex-col h-screen overflow-hidden">
           <div className="p-4 border-b border-neutral-900">
-            <Link href={withToken('/dashboard')} className="flex items-center gap-2.5 mb-4">
-              <div className="h-8 w-8 rounded-md bg-white/95 flex items-center justify-center overflow-hidden">
-                <Image
-                  src="/logo.svg"
-                  alt="helena"
-                  width={32}
-                  height={32}
-                  className="h-8 w-8 object-contain"
-                  priority
-                />
-              </div>
+            <Link href={withToken('/dashboard')} className="flex items-center gap-2 mb-4">
+              <Image
+                src="/logo.png"
+                alt="helena"
+                width={36}
+                height={36}
+                className="h-9 w-9 object-contain"
+                priority
+              />
               <span className="text-lg font-semibold tracking-tight text-white">helena</span>
             </Link>
             <div className="flex items-center gap-2.5 p-2.5 rounded-lg border border-neutral-800 bg-neutral-900/60">

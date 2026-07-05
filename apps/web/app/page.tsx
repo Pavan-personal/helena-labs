@@ -27,7 +27,7 @@ export default async function Home({
       </Suspense>
       <div className="max-w-2xl w-full">
         <div className="flex items-center gap-2 mb-4">
-          <Image src="/logo.svg" alt="helena" width={28} height={28} className="rounded" priority />
+          <Image src="/logo.png" alt="helena" width={32} height={32} className="object-contain" priority />
           <span className="text-xs uppercase tracking-widest text-neutral-500">helena</span>
         </div>
         <h1 className="text-5xl font-bold mb-4 tracking-tight leading-tight">
