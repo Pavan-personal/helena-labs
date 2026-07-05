@@ -11,21 +11,21 @@ export function CopyRow({ label, value }: { label: string; value: string }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      // best effort
+      // ignore
     }
   }
 
   return (
     <div>
-      <div className="text-xs text-neutral-500 mb-1.5">{label}</div>
-      <div className="flex gap-2">
-        <code className="flex-1 bg-neutral-950 border border-neutral-900 rounded px-3 py-2 text-xs overflow-x-auto whitespace-nowrap">
-          {value}
-        </code>
+      <div className="text-[11px] uppercase tracking-widest text-neutral-500 mb-1.5">{label}</div>
+      <div className="flex gap-2 items-stretch">
+        <div className="flex-1 min-w-0 bg-neutral-950 border border-neutral-900 rounded-lg overflow-hidden">
+          <code className="block px-3 py-2.5 text-xs text-neutral-300 truncate">{value}</code>
+        </div>
         <button
           type="button"
           onClick={copy}
-          className="px-3 py-2 rounded border border-neutral-700 text-xs hover:border-neutral-500"
+          className="shrink-0 px-3 py-2 rounded-lg border border-neutral-800 text-xs text-neutral-300 hover:border-neutral-600 hover:text-white transition-colors"
         >
           {copied ? 'Copied' : 'Copy'}
         </button>

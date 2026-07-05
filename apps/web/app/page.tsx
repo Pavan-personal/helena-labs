@@ -1,5 +1,7 @@
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { getWorkspaceFromSession } from '@/lib/session';
+import { LandingSessionCheck } from '@/app/components/session-sync';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +20,9 @@ export default async function Home({
 
   return (
     <main className="min-h-screen flex items-center justify-center p-8">
+      <Suspense fallback={null}>
+        <LandingSessionCheck />
+      </Suspense>
       <div className="max-w-2xl w-full">
         <div className="mb-3 text-xs uppercase tracking-widest text-neutral-500">helena</div>
         <h1 className="text-5xl font-bold mb-4 tracking-tight leading-tight">

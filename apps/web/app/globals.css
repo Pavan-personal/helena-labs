@@ -10,6 +10,7 @@ html, body {
   background: #0a0a0a;
   color: #e5e5e5;
   font-family: ui-sans-serif, system-ui, sans-serif;
+  height: 100%;
 }
 
 a {
@@ -24,4 +25,32 @@ a:hover {
 code, pre {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.85rem;
+}
+
+/* Hide scrollbars globally but keep scroll behavior */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Subtle thin scrollbar for elements that want a hint of scroll */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #262626 transparent;
+}
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #262626;
+  border-radius: 3px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
 }
