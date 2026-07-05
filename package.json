@@ -10,7 +10,8 @@
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
     "migrate": "node --env-file=apps/web/.env.local scripts/migrate.mjs",
-    "discord:register": "node --env-file=apps/web/.env.local scripts/register-discord-commands.mjs"
+    "discord:register": "node --env-file=apps/web/.env.local scripts/register-discord-commands.mjs",
+    "seed": "node --env-file=apps/web/.env.local scripts/seed-demo.mjs"
   },
   "engines": {
     "node": ">=20.0.0",

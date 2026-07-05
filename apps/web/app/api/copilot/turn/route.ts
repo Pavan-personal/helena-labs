@@ -6,6 +6,7 @@ import { classifyRoute } from '@/lib/copilot/router';
 import { runToolLoop } from '@/lib/copilot/loop';
 import { createSseStream, SSE_HEADERS } from '@/lib/copilot/sse';
 import { MAIN_SYSTEM_PROMPT } from '@/lib/copilot/prompts';
+import { runVisionConsensus, fetchAttachmentsAsDataUrls } from '@/lib/copilot/vision';
 import {
   createThread,
   getThread,
@@ -30,6 +31,7 @@ export async function POST(req: Request) {
     userText?: string;
     turnId?: string;
     pinnedRefIds?: string[];
+    attachmentIds?: string[];
     hs?: string;
   };
 
@@ -104,14 +106,80 @@ export async function POST(req: Request) {
   const sse = createSseStream();
   const abortSignal = req.signal;
 
+  const attachmentIds = body.attachmentIds ?? [];
+
   // Start the actual work in a background task so we can return the stream immediately.
   (async () => {
     const keepaliveHandle = setInterval(() => sse.keepalive(), 5000);
     try {
+      // ---- Vision preprocessing (before classifier so we can force VISION label) ----
+      let visionResult: import('@/lib/copilot/vision').VisionConsensus | null = null;
+      if (attachmentIds.length > 0) {
+        sse.write({ type: 'status', kind: 'vision_start' });
+        sse.write({
+          type: 'model_switch',
+          model: MODELS.VISION_GPT,
+          reason: 'vision consensus A'
+        });
+        sse.write({
+          type: 'model_switch',
+          model: MODELS.VISION_GEMINI,
+          reason: 'vision consensus B'
+        });
+        const dataUrls = await fetchAttachmentsAsDataUrls(workspace.id, attachmentIds);
+        if (dataUrls.length > 0) {
+          const visionId = crypto.randomUUID();
+          sse.write({
+            type: 'tool_call',
+            id: visionId,
+            name: 'identify_screenshot',
+            args: JSON.stringify({ attachment_ids: attachmentIds })
+          });
+          try {
+            visionResult = await runVisionConsensus(dataUrls);
+            sse.write({
+              type: 'tool_result',
+              id: visionId,
+              name: 'identify_screenshot',
+              summary: `${visionResult.source}: ${visionResult.summary} (${visionResult.model_agreement} agreement)`,
+              count: visionResult.models_used.length
+            });
+            await insertMessage({
+              threadId,
+              workspaceId: workspace.id,
+              turnId,
+              role: 'tool_call',
+              toolName: 'identify_screenshot',
+              toolCallId: visionId,
+              content: JSON.stringify({ attachment_ids: attachmentIds })
+            });
+            await insertMessage({
+              threadId,
+              workspaceId: workspace.id,
+              turnId,
+              role: 'tool_result',
+              toolName: 'identify_screenshot',
+              toolCallId: visionId,
+              content: JSON.stringify(visionResult).slice(0, 10000)
+            });
+          } catch (e) {
+            sse.write({
+              type: 'tool_result',
+              id: visionId,
+              name: 'identify_screenshot',
+              summary: 'vision consensus failed',
+              error: e instanceof Error ? e.message : 'unknown'
+            });
+          }
+        }
+      }
+
       // Route classification
       sse.write({ type: 'status', kind: 'classifying' });
       sse.write({ type: 'model_switch', model: MODELS.FAST, reason: 'classifier' });
-      const routing = await classifyRoute(userText);
+      const routing = attachmentIds.length > 0
+        ? { label: 'VISION' as const, raw: 'AUTO_VISION', tokensIn: 0, tokensOut: 0, latencyMs: 0 }
+        : await classifyRoute(userText);
       const cfg = ROUTE_CONFIG[routing.label];
 
       sse.write({ type: 'model_switch', model: cfg.model, reason: `main loop (${routing.label})` });
@@ -136,6 +204,40 @@ export async function POST(req: Request) {
         ...priorConvo,
         { role: 'user', content: userText }
       ];
+
+      // If we ran vision consensus, inject its result as an assistant/tool pair
+      // so the loop sees it as a pre-executed tool_result. Text inside is
+      // untrusted (user-provided image content) — system prompt flags that.
+      if (visionResult) {
+        const visionId = 'vision_' + turnId.slice(0, 8);
+        initialMessages.push({
+          role: 'assistant',
+          content: '',
+          tool_calls: [
+            {
+              id: visionId,
+              type: 'function',
+              function: {
+                name: 'identify_screenshot',
+                arguments: JSON.stringify({ attachment_ids: attachmentIds })
+              }
+            }
+          ]
+        });
+        initialMessages.push({
+          role: 'tool',
+          tool_call_id: visionId,
+          content: JSON.stringify({
+            source: visionResult.source,
+            summary: visionResult.summary,
+            extracted_text: visionResult.extracted_text,
+            suggested_query: visionResult.suggested_query,
+            severity_hint: visionResult.severity_hint,
+            model_agreement: visionResult.model_agreement,
+            models_used: visionResult.models_used
+          })
+        });
+      }
 
       const result = await runToolLoop({
         label: routing.label,

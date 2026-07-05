@@ -10,7 +10,12 @@ import {
   BookOpen,
   Cpu,
   CircleCheck,
-  Loader2
+  Loader2,
+  ImageIcon,
+  X,
+  Paperclip,
+  ScrollText,
+  FileSpreadsheet
 } from 'lucide-react';
 
 interface StatusRow {
@@ -48,10 +53,18 @@ type LiveEvent =
 interface TurnRecord {
   turnId: string;
   userText: string;
+  attachmentPreviews?: string[];
   live: LiveEvent[];
   assistant: AssistantRow | null;
   error: string | null;
   running: boolean;
+}
+
+interface PendingAttachment {
+  id: string;
+  previewUrl: string;
+  name: string;
+  bytes: number;
 }
 
 export function CopilotChat({
@@ -65,7 +78,11 @@ export function CopilotChat({
   const [turns, setTurns] = useState<TurnRecord[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+  const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Hydrate messages if we opened an existing thread
   useEffect(() => {
@@ -95,20 +112,64 @@ export function CopilotChat({
     });
   }, [turns]);
 
+  const uploadFile = useCallback(
+    async (file: File): Promise<PendingAttachment | null> => {
+      const form = new FormData();
+      form.set('file', file);
+      const res = await fetch(`/api/copilot/upload?hs=${encodeURIComponent(token)}`, {
+        method: 'POST',
+        body: form
+      });
+      if (!res.ok) return null;
+      const { attachmentId } = (await res.json()) as { attachmentId: string };
+      return {
+        id: attachmentId,
+        previewUrl: URL.createObjectURL(file),
+        name: file.name,
+        bytes: file.size
+      };
+    },
+    [token]
+  );
+
+  const handleFiles = useCallback(
+    async (files: FileList | File[]) => {
+      if (uploading) return;
+      const list = Array.from(files).filter((f) =>
+        ['image/png', 'image/jpeg', 'image/webp'].includes(f.type)
+      );
+      if (list.length === 0) return;
+      setUploading(true);
+      try {
+        for (const f of list) {
+          const up = await uploadFile(f);
+          if (up) setAttachments((prev) => [...prev, up]);
+        }
+      } finally {
+        setUploading(false);
+      }
+    },
+    [uploading, uploadFile]
+  );
+
   const sendMessage = useCallback(
-    async (text: string) => {
-      if (!text.trim() || sending) return;
+    async (text: string, extraAttachmentIds?: string[]) => {
+      const currentAttachmentIds = extraAttachmentIds ?? attachments.map((a) => a.id);
+      if ((!text.trim() && currentAttachmentIds.length === 0) || sending) return;
       setSending(true);
       const turnId = crypto.randomUUID();
+      const previews = attachments.map((a) => a.previewUrl);
       const newTurn: TurnRecord = {
         turnId,
         userText: text,
+        attachmentPreviews: previews.length > 0 ? previews : undefined,
         live: [],
         assistant: null,
         error: null,
         running: true
       };
       setTurns((prev) => [...prev, newTurn]);
+      setAttachments([]);
 
       try {
         const res = await fetch('/api/copilot/turn', {
@@ -118,6 +179,7 @@ export function CopilotChat({
             threadId: threadId ?? undefined,
             userText: text,
             turnId,
+            attachmentIds: currentAttachmentIds,
             hs: token
           })
         });
@@ -174,29 +236,91 @@ export function CopilotChat({
         setSending(false);
       }
     },
-    [sending, threadId, token]
+    [sending, threadId, token, attachments]
   );
 
   return (
-    <div className="border border-neutral-800 rounded-xl bg-neutral-950/40 flex flex-col overflow-hidden">
+    <div
+      className={`border rounded-xl bg-neutral-950/40 flex flex-col overflow-hidden transition-colors ${
+        dragOver ? 'border-sky-500 bg-sky-950/20' : 'border-neutral-800'
+      }`}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setDragOver(true);
+      }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDragOver(false);
+        if (e.dataTransfer.files.length > 0) handleFiles(e.dataTransfer.files);
+      }}
+    >
       <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin p-6 space-y-6">
-        {turns.length === 0 && <EmptyState onSuggest={sendMessage} />}
+        {turns.length === 0 && <EmptyState onSuggest={(t) => sendMessage(t)} />}
         {turns.map((t) => (
-          <TurnBlock key={t.turnId} turn={t} />
+          <TurnBlock
+            key={t.turnId}
+            turn={t}
+            onFollowUp={(prompt) => sendMessage(prompt)}
+          />
         ))}
       </div>
 
       <div className="border-t border-neutral-900 p-3 bg-neutral-950/60">
+        {attachments.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-2">
+            {attachments.map((a) => (
+              <div
+                key={a.id}
+                className="relative group h-14 w-14 rounded-md overflow-hidden border border-neutral-800"
+              >
+                <img src={a.previewUrl} alt={a.name} className="h-full w-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => setAttachments((prev) => prev.filter((p) => p.id !== a.id))}
+                  className="absolute top-0.5 right-0.5 rounded-full bg-black/70 hover:bg-black text-neutral-200 p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+            {uploading && (
+              <div className="h-14 w-14 rounded-md border border-dashed border-neutral-800 flex items-center justify-center">
+                <Loader2 className="h-4 w-4 animate-spin text-neutral-500" />
+              </div>
+            )}
+          </div>
+        )}
+
         <form
           onSubmit={(e) => {
             e.preventDefault();
             const text = input.trim();
-            if (!text) return;
+            if (!text && attachments.length === 0) return;
             setInput('');
             sendMessage(text);
           }}
           className="flex gap-2 items-end"
         >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files) handleFiles(e.target.files);
+              e.target.value = '';
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="shrink-0 h-10 w-10 rounded-lg border border-neutral-800 text-neutral-400 hover:text-neutral-200 hover:border-neutral-600 flex items-center justify-center"
+            title="Attach screenshot"
+          >
+            <Paperclip className="h-4 w-4" />
+          </button>
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -204,18 +328,35 @@ export function CopilotChat({
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 const text = input.trim();
-                if (!text) return;
+                if (!text && attachments.length === 0) return;
                 setInput('');
                 sendMessage(text);
               }
             }}
-            placeholder="Ask about incidents, runbooks, or paste an alert..."
+            onPaste={(e) => {
+              const files: File[] = [];
+              for (const item of Array.from(e.clipboardData.items)) {
+                if (item.kind === 'file') {
+                  const file = item.getAsFile();
+                  if (file) files.push(file);
+                }
+              }
+              if (files.length > 0) {
+                e.preventDefault();
+                handleFiles(files);
+              }
+            }}
+            placeholder={
+              dragOver
+                ? 'Drop images anywhere to attach'
+                : 'Ask about incidents, or drop / paste a screenshot...'
+            }
             rows={2}
             className="flex-1 resize-none rounded-lg bg-neutral-950 border border-neutral-800 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-neutral-600 focus:outline-none"
           />
           <button
             type="submit"
-            disabled={sending || !input.trim()}
+            disabled={sending || (!input.trim() && attachments.length === 0)}
             className="shrink-0 h-10 w-10 rounded-lg bg-white text-neutral-900 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed hover:bg-neutral-100"
           >
             {sending ? (
@@ -261,16 +402,22 @@ function EmptyState({ onSuggest }: { onSuggest: (text: string) => void }) {
   );
 }
 
-function TurnBlock({ turn }: { turn: TurnRecord }) {
+function TurnBlock({
+  turn,
+  onFollowUp
+}: {
+  turn: TurnRecord;
+  onFollowUp: (prompt: string) => void;
+}) {
   return (
     <div className="space-y-4">
-      <UserBubble text={turn.userText} />
+      <UserBubble text={turn.userText} previews={turn.attachmentPreviews} />
       <div className="space-y-1.5">
         {turn.live.map((e, i) => (
           <TraceRow key={i} event={e} />
         ))}
       </div>
-      {turn.assistant && <AssistantBubble msg={turn.assistant} />}
+      {turn.assistant && <AssistantBubble msg={turn.assistant} onFollowUp={onFollowUp} />}
       {turn.running && !turn.assistant && (
         <div className="text-xs text-neutral-500 flex items-center gap-2">
           <Loader2 className="h-3 w-3 animate-spin" /> working...
@@ -285,11 +432,27 @@ function TurnBlock({ turn }: { turn: TurnRecord }) {
   );
 }
 
-function UserBubble({ text }: { text: string }) {
+function UserBubble({ text, previews }: { text: string; previews?: string[] }) {
   return (
     <div className="flex justify-end">
-      <div className="max-w-[80%] rounded-2xl bg-neutral-800 text-sm text-neutral-100 px-4 py-2.5">
-        {text}
+      <div className="max-w-[80%] flex flex-col items-end gap-2">
+        {previews && previews.length > 0 && (
+          <div className="flex gap-1.5 flex-wrap justify-end">
+            {previews.map((url, i) => (
+              <img
+                key={i}
+                src={url}
+                alt="attachment"
+                className="h-24 w-24 rounded-md border border-neutral-800 object-cover"
+              />
+            ))}
+          </div>
+        )}
+        {text && (
+          <div className="rounded-2xl bg-neutral-800 text-sm text-neutral-100 px-4 py-2.5">
+            {text}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -343,7 +506,14 @@ function ToolIcon({ name }: { name: string }) {
   return <FileText className="h-3 w-3 text-neutral-500" />;
 }
 
-function AssistantBubble({ msg }: { msg: AssistantRow }) {
+function AssistantBubble({
+  msg,
+  onFollowUp
+}: {
+  msg: AssistantRow;
+  onFollowUp: (prompt: string) => void;
+}) {
+  const hasCitations = msg.citations && msg.citations.length > 0;
   return (
     <div className="border border-neutral-800 rounded-xl bg-neutral-950/60 p-4">
       <div className="text-[11px] text-neutral-500 flex items-center gap-2 mb-2">
@@ -360,6 +530,42 @@ function AssistantBubble({ msg }: { msg: AssistantRow }) {
       <div className="text-sm text-neutral-200 leading-relaxed whitespace-pre-wrap">
         {renderMarkdownWithCitations(msg.markdown)}
       </div>
+      {hasCitations && (
+        <div className="mt-4 pt-3 border-t border-neutral-900 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              const ids = msg.citations
+                .filter((c) => c.kind === 'incident')
+                .map((c) => `INC-${c.id.slice(0, 6)}`)
+                .join(', ');
+              onFollowUp(
+                `Draft a blameless post-mortem based on ${ids || 'the incidents you just cited'}. Include symptom, detection, diagnosis steps, resolution, and prevention.`
+              );
+            }}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-neutral-800 text-[11px] text-neutral-300 hover:border-neutral-600 hover:text-white"
+          >
+            <ScrollText className="h-3 w-3" strokeWidth={1.75} />
+            Generate post-mortem
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const ids = msg.citations
+                .filter((c) => c.kind === 'incident')
+                .map((c) => `INC-${c.id.slice(0, 6)}`)
+                .join(', ');
+              onFollowUp(
+                `Write a 4-line exec brief for the CEO/CTO covering ${ids || 'these incidents'}. No jargon. Business impact first, then technical summary, then what we did, then risk of recurrence.`
+              );
+            }}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-neutral-800 text-[11px] text-neutral-300 hover:border-neutral-600 hover:text-white"
+          >
+            <FileSpreadsheet className="h-3 w-3" strokeWidth={1.75} />
+            Exec brief
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -402,6 +608,8 @@ function humanizeStatus(kind: string): string {
       return 'One citation looked off, regenerating...';
     case 'drafting':
       return 'Drafting response...';
+    case 'vision_start':
+      return 'Running dual-model vision consensus...';
     default:
       return kind;
   }
