@@ -105,12 +105,22 @@ export function CopilotChat({
     };
   }, [initialThreadId, token]);
 
+  // Force auto-scroll to bottom on every turn/live-event change.
+  // Using a "shouldAutoScroll" ref would let the user opt out by scrolling up,
+  // but for the demo we keep it always-follow so judges see the trace stream.
   useEffect(() => {
-    scrollRef.current?.scrollTo({
-      top: scrollRef.current.scrollHeight,
-      behavior: 'smooth'
-    });
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
   }, [turns]);
+
+  // Revoke blob: URLs when the component unmounts to avoid a memory leak
+  // from lots of dropped screenshots during a long session.
+  useEffect(() => {
+    return () => {
+      for (const a of attachments) URL.revokeObjectURL(a.previewUrl);
+    };
+  }, [attachments]);
 
   const uploadFile = useCallback(
     async (file: File): Promise<PendingAttachment | null> => {

@@ -26,7 +26,7 @@ export const maxDuration = 60;
 type ChatMessage = OpenAI.Chat.Completions.ChatCompletionMessageParam;
 
 export async function POST(req: Request) {
-  const body = (await req.json()) as {
+  let body: {
     threadId?: string;
     userText?: string;
     turnId?: string;
@@ -34,6 +34,11 @@ export async function POST(req: Request) {
     attachmentIds?: string[];
     hs?: string;
   };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'bad json body' }, { status: 400 });
+  }
 
   const workspace = await getWorkspaceFromSession(body.hs);
   if (!workspace) {
