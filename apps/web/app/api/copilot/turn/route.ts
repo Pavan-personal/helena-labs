@@ -20,7 +20,7 @@ import {
 } from '@/lib/copilot/db';
 
 const MAX_INFLIGHT_TURNS_PER_WORKSPACE = 5;
-import { ROUTE_CONFIG, MODELS } from '@/lib/copilot/btl';
+import { ROUTE_CONFIG, MODELS, estimateCostCents } from '@/lib/copilot/btl';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -214,7 +214,7 @@ export async function POST(req: Request) {
           model: MODELS.FAST,
           tokensIn: routing.tokensIn,
           tokensOut: routing.tokensOut,
-          costCents: 0
+          costCents: estimateCostCents(MODELS.FAST, routing.tokensIn, routing.tokensOut)
         });
       } catch (e) {
         console.error('log classifier usage failed:', e);
@@ -311,7 +311,7 @@ export async function POST(req: Request) {
           model: result.model,
           tokensIn: result.tokensIn,
           tokensOut: result.tokensOut,
-          costCents: 0
+          costCents: estimateCostCents(result.model, result.tokensIn, result.tokensOut)
         });
       } catch (e) {
         console.error('log main usage failed:', e);

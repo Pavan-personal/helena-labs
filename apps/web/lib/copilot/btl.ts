@@ -35,3 +35,26 @@ export const ROUTE_CONFIG: Record<
   VISION: { model: MODELS.PRO, temperature: 0.3, toolCallCap: 6 },
   POSTMORTEM: { model: MODELS.PRO, temperature: 0.2, toolCallCap: 4 }
 };
+
+/**
+ * Per-model prices in USD per 1M tokens. Approximates public rack rates for
+ * comparable models. Used only to give the usage dashboard a realistic dollar
+ * figure — no billing depends on it.
+ */
+const PRICING_PER_M_TOKENS: Record<string, { input: number; output: number }> = {
+  'deepseek-v4-flash': { input: 0.07, output: 0.28 },
+  'deepseek-v4-pro': { input: 0.27, output: 1.10 },
+  'gpt-4o-mini': { input: 0.15, output: 0.60 },
+  'gemini-2.5-flash-image': { input: 0.075, output: 0.30 }
+};
+
+export function estimateCostCents(
+  model: string,
+  tokensIn: number,
+  tokensOut: number
+): number {
+  const rate = PRICING_PER_M_TOKENS[model];
+  if (!rate) return 0;
+  const usd = (tokensIn * rate.input + tokensOut * rate.output) / 1_000_000;
+  return Math.round(usd * 100 * 10_000) / 10_000;
+}

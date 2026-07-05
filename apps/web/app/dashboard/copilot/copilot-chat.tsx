@@ -436,7 +436,7 @@ function TurnBlock({
       <UserBubble text={turn.userText} previews={turn.attachmentPreviews} />
       <div className="space-y-1.5">
         {turn.live.map((e, i) => (
-          <TraceRow key={i} event={e} />
+          <TraceRow key={i} event={e} settled={!turn.running} />
         ))}
       </div>
       {turn.assistant && <AssistantBubble msg={turn.assistant} onFollowUp={onFollowUp} />}
@@ -480,12 +480,16 @@ function UserBubble({ text, previews }: { text: string; previews?: string[] }) {
   );
 }
 
-function TraceRow({ event }: { event: LiveEvent }) {
+function TraceRow({ event, settled }: { event: LiveEvent; settled: boolean }) {
   if (event.kind === 'status') {
     return (
       <div className="text-[11px] text-neutral-500 flex items-center gap-2">
-        <Loader2 className="h-3 w-3 animate-spin text-neutral-600" />
-        {humanizeStatus(event.row.kind)}
+        {settled ? (
+          <CircleCheck className="h-3 w-3 text-neutral-600" />
+        ) : (
+          <Loader2 className="h-3 w-3 animate-spin text-neutral-600" />
+        )}
+        {humanizeStatus(event.row.kind, settled)}
       </div>
     );
   }
@@ -618,23 +622,25 @@ function renderMarkdownWithCitations(text: string): React.ReactNode[] {
   return parts;
 }
 
-function humanizeStatus(kind: string): string {
-  switch (kind) {
-    case 'classifying':
-      return 'Classifying the question...';
-    case 'reasoning':
-      return 'Reasoning across your memory...';
-    case 'validating_citations':
-      return 'Validating citations...';
-    case 'regenerating_for_citations':
-      return 'One citation looked off, regenerating...';
-    case 'drafting':
-      return 'Drafting response...';
-    case 'vision_start':
-      return 'Running dual-model vision consensus...';
-    default:
-      return kind;
-  }
+function humanizeStatus(kind: string, settled: boolean): string {
+  const live: Record<string, string> = {
+    classifying: 'Classifying the question...',
+    reasoning: 'Reasoning across your memory...',
+    validating_citations: 'Validating citations...',
+    regenerating_for_citations: 'One citation looked off, regenerating...',
+    drafting: 'Drafting response...',
+    vision_start: 'Running dual-model vision consensus...'
+  };
+  const done: Record<string, string> = {
+    classifying: 'Classified',
+    reasoning: 'Reasoned across memory',
+    validating_citations: 'Citations validated',
+    regenerating_for_citations: 'Regenerated for citations',
+    drafting: 'Drafted',
+    vision_start: 'Vision consensus complete'
+  };
+  const table = settled ? done : live;
+  return table[kind] ?? kind;
 }
 
 interface SseParsed {
