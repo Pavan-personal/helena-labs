@@ -15,8 +15,11 @@ import {
   touchThread,
   upsertTurn,
   finalizeTurn,
-  listMessages
+  listMessages,
+  countInflightTurns
 } from '@/lib/copilot/db';
+
+const MAX_INFLIGHT_TURNS_PER_WORKSPACE = 5;
 import { ROUTE_CONFIG, MODELS } from '@/lib/copilot/btl';
 
 export const runtime = 'nodejs';
@@ -48,6 +51,19 @@ export async function POST(req: Request) {
   const turnId = (body.turnId ?? '').trim();
   if (!userText || !turnId) {
     return NextResponse.json({ error: 'missing userText or turnId' }, { status: 400 });
+  }
+
+  // Cost DoS guard: reject if this workspace already has too many turns in flight.
+  const inflight = await countInflightTurns(workspace.id);
+  if (inflight >= MAX_INFLIGHT_TURNS_PER_WORKSPACE) {
+    return NextResponse.json(
+      {
+        error: 'too many concurrent turns for this workspace, retry once one finishes',
+        code: 'rate_limited',
+        inflight
+      },
+      { status: 429, headers: { 'Retry-After': '10' } }
+    );
   }
 
   let threadId = body.threadId;

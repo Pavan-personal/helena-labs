@@ -174,6 +174,26 @@ export async function upsertTurn(input: {
   return { created: true };
 }
 
+/**
+ * Cost DoS defense: count still-running turns for a workspace. Callers reject
+ * if it exceeds the cap. Fails open (returns 0) if the count query errors, so
+ * a Supabase blip never wedges legitimate traffic.
+ */
+export async function countInflightTurns(workspaceId: string): Promise<number> {
+  try {
+    const db = getServerClient();
+    const { count, error } = await db
+      .from('copilot_turns')
+      .select('turn_id', { count: 'exact', head: true })
+      .eq('workspace_id', workspaceId)
+      .eq('status', 'running');
+    if (error) return 0;
+    return count ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
 export async function finalizeTurn(input: {
   turnId: string;
   status: 'done' | 'error' | 'timed_out';
