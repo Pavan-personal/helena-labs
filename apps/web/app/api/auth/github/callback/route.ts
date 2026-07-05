@@ -1,39 +1,41 @@
 import { NextResponse } from 'next/server';
-import { getWorkspaceById, updateWorkspaceIntegration } from '@helena/db';
+import { cookies } from 'next/headers';
+import { timingSafeEqual } from 'node:crypto';
+import { updateWorkspaceIntegration } from '@helena/db';
 import { encodeSessionToken, getWorkspaceFromSession, attachSessionCookie } from '@/lib/session';
 import { listInstallationRepos } from '@/lib/github';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-/**
- * GitHub sends the user back here after they install the app.
- * Query params:
- *   installation_id  the numeric install id
- *   setup_action     'install' | 'update'
- *   state            our workspace-scoped signed session token
- *   code             optional oauth code if user identity is requested
- */
+const NONCE_COOKIE = 'gh_install_state';
+
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const installationIdRaw = url.searchParams.get('installation_id');
   const state = url.searchParams.get('state');
 
-  if (!installationIdRaw) {
-    return NextResponse.redirect(
-      new URL('/dashboard/integrations?err=no_installation', url.origin)
-    );
+  if (!installationIdRaw || !/^\d+$/.test(installationIdRaw) || installationIdRaw === '0') {
+    return redirectErr(url.origin, 'bad_installation_id');
   }
   const installationId = Number(installationIdRaw);
-  if (!Number.isFinite(installationId)) {
-    return NextResponse.redirect(
-      new URL('/dashboard/integrations?err=bad_installation_id', url.origin)
-    );
+
+  if (!state) return redirectErr(url.origin, 'missing_state');
+  const [nonce, workspaceToken] = state.split('.');
+  if (!nonce || !workspaceToken) return redirectErr(url.origin, 'bad_state');
+
+  const jar = await cookies();
+  const cookieNonce = jar.get(NONCE_COOKIE)?.value;
+  if (!cookieNonce) return redirectErr(url.origin, 'nonce_missing');
+  const a = Buffer.from(nonce);
+  const b = Buffer.from(cookieNonce);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) {
+    return redirectErr(url.origin, 'nonce_mismatch');
   }
 
-  const workspace = await getWorkspaceFromSession(state ?? undefined);
+  const workspace = await getWorkspaceFromSession(workspaceToken);
   if (!workspace) {
-    return NextResponse.redirect(new URL('/?install_error=no_session', url.origin));
+    return redirectErr(url.origin, 'no_workspace');
   }
 
   let repos: string[] = [];
@@ -44,15 +46,31 @@ export async function GET(req: Request) {
     console.error('list repos failed:', e);
   }
 
-  await updateWorkspaceIntegration(workspace.id, {
-    github_installation_id: installationId,
-    github_repos: repos,
-    github_connected_at: new Date().toISOString()
-  });
+  try {
+    await updateWorkspaceIntegration(workspace.id, {
+      github_installation_id: installationId,
+      github_repos: repos,
+      github_connected_at: new Date().toISOString()
+    });
+  } catch (e) {
+    console.error('save github failed:', e);
+    return redirectErr(url.origin, 'save_failed');
+  }
 
   const dest = new URL('/dashboard/integrations', url.origin);
   dest.searchParams.set('hs', encodeSessionToken(workspace.id));
   dest.searchParams.set('connected', 'github');
   const res = NextResponse.redirect(dest);
+  // Clear the one-time nonce cookie
+  res.headers.append(
+    'Set-Cookie',
+    `${NONCE_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`
+  );
   return attachSessionCookie(res, workspace.id);
+}
+
+function redirectErr(origin: string, err: string): NextResponse {
+  const dest = new URL('/dashboard/integrations', origin);
+  dest.searchParams.set('err', err);
+  return NextResponse.redirect(dest);
 }

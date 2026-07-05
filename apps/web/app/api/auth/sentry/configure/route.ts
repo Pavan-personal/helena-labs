@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
 import { updateWorkspaceIntegration } from '@helena/db';
 import { getWorkspaceFromSession, attachSessionCookie, encodeSessionToken } from '@/lib/session';
-import { fetchSentryOrg, fetchSentryProjects } from '@/lib/sentry-api';
+import {
+  fetchSentryOrg,
+  fetchSentryProjects,
+  fetchSentryAppInstallations,
+  createHelenaIssueAlertRule
+} from '@/lib/sentry-api';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -31,6 +36,35 @@ export async function POST(req: Request) {
   const projectSlugs = projectsCheck.ok
     ? (projectsCheck.projects ?? []).map((p) => p.slug)
     : [];
+
+  // Look up helena's Internal Integration installation UUID so we can
+  // create alert rules that fire our webhook. If we can't find it, we
+  // still save the token — user can add the rules manually.
+  const installsCheck = await fetchSentryAppInstallations(orgSlug, token);
+  let installationUuid: string | null = null;
+  if (installsCheck.ok && installsCheck.installations) {
+    const helena = installsCheck.installations.find(
+      (i) => i.app.slug === 'helena' || i.app.slug.startsWith('helena')
+    );
+    installationUuid = helena?.uuid ?? null;
+  }
+
+  // Best-effort auto-create issue-alert rules on each project so alerts
+  // actually reach us. Sentry Alerts webhook subscription alone does NOT
+  // deliver events — each rule needs helena added as an Action.
+  const ruleResults: Array<{ project: string; ok: boolean; error?: string }> = [];
+  if (installationUuid) {
+    for (const projectSlug of projectSlugs.slice(0, 10)) {
+      const r = await createHelenaIssueAlertRule(
+        orgSlug,
+        projectSlug,
+        token,
+        installationUuid
+      );
+      ruleResults.push({ project: projectSlug, ok: r.ok, error: r.error });
+      if (!r.ok) console.error(`sentry rule create failed for ${projectSlug}:`, r.error);
+    }
+  }
 
   try {
     await updateWorkspaceIntegration(workspace.id, {

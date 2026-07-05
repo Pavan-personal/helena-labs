@@ -10,14 +10,18 @@ function signAppJwt(): string {
   if (!env.GITHUB_APP_ID || !env.GITHUB_APP_PRIVATE_KEY) {
     throw new Error('GitHub App not configured');
   }
+  // Handle env-var stored PEMs which may have literal \n escapes.
+  const key = env.GITHUB_APP_PRIVATE_KEY.includes('-----BEGIN')
+    ? env.GITHUB_APP_PRIVATE_KEY.replace(/\\n/g, '\n')
+    : env.GITHUB_APP_PRIVATE_KEY;
   const now = Math.floor(Date.now() / 1000);
   const header = { alg: 'RS256', typ: 'JWT' };
-  const payload = { iat: now - 60, exp: now + 540, iss: env.GITHUB_APP_ID };
+  const payload = { iat: now - 60, exp: now + 540, iss: String(env.GITHUB_APP_ID) };
   const h = Buffer.from(JSON.stringify(header)).toString('base64url');
   const p = Buffer.from(JSON.stringify(payload)).toString('base64url');
   const signer = createSign('RSA-SHA256');
   signer.update(`${h}.${p}`);
-  const sig = signer.sign(env.GITHUB_APP_PRIVATE_KEY, 'base64url');
+  const sig = signer.sign(key, 'base64url');
   return `${h}.${p}.${sig}`;
 }
 
