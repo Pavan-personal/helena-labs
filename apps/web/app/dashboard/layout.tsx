@@ -9,7 +9,8 @@ import {
   BookOpen,
   Plug,
   Activity,
-  User
+  User,
+  Sparkles
 } from 'lucide-react';
 import { requireWorkspace, encodeSessionToken } from '@/lib/session';
 import { SessionSync, SignOutButton } from '@/app/components/session-sync';
@@ -18,6 +19,7 @@ export const dynamic = 'force-dynamic';
 
 const NAV = [
   { href: '/dashboard', label: 'Overview', Icon: LayoutGrid },
+  { href: '/dashboard/copilot', label: 'Copilot', Icon: Sparkles },
   { href: '/dashboard/incidents', label: 'Incidents', Icon: AlertTriangle },
   { href: '/dashboard/drafts', label: 'Runbook drafts', Icon: FileEdit },
   { href: '/dashboard/runbooks', label: 'Runbooks', Icon: BookOpen },
