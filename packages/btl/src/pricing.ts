@@ -8,14 +8,26 @@
  * (numbers are dollars per million tokens, so divide by 1e6 to get $/token,
  *  then multiply by 100 to get cents/token.)
  */
+/**
+ * Cents per token. Convert from published dollars per 1M tokens by dividing
+ * by 1e4 (since 1M tokens * ($/M ÷ 1M) * 100 cents/dollar = $/M ÷ 10000 cents/tok).
+ */
 export const PRICING: Record<string, { in: number; out: number }> = {
   'gpt-4o-mini': {
-    in: 0.000015,
-    out: 0.00006
+    in: 0.15 / 1e4,
+    out: 0.60 / 1e4
   },
   'deepseek-v4-flash': {
-    in: 0,
-    out: 0
+    in: 0.07 / 1e4,
+    out: 0.28 / 1e4
+  },
+  'deepseek-v4-pro': {
+    in: 0.27 / 1e4,
+    out: 1.10 / 1e4
+  },
+  'gemini-2.5-flash-image': {
+    in: 0.075 / 1e4,
+    out: 0.30 / 1e4
   },
   'deepseek-v3.2': {
     in: 0.0000229,
