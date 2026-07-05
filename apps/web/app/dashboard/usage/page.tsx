@@ -46,8 +46,9 @@ export default async function UsagePage({
         </div>
         <h1 className="text-3xl font-semibold tracking-tight text-white">Usage &amp; cost</h1>
         <p className="text-sm text-neutral-500 mt-1 max-w-2xl">
-          Every BTL call helena makes is logged with role, model, and token count. Free-tier
-          models cost $0.00 but still show up here so you can see the multi-model routing at work.
+          Every BTL call helena makes is logged with role, model, token count, and cost. Costs
+          are estimated from published per-model rates, so watch the model breakdown to see how
+          routing keeps the bill small.
         </p>
       </div>
 
