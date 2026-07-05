@@ -165,6 +165,20 @@ export async function POST(req: Request) {
               summary: `${visionResult.source}: ${visionResult.summary} (${visionResult.model_agreement} agreement)`,
               count: visionResult.models_used.length
             });
+            for (const u of visionResult.usage) {
+              try {
+                await logUsage({
+                  workspaceId: workspace.id,
+                  role: 'vision',
+                  model: u.model,
+                  tokensIn: u.tokensIn,
+                  tokensOut: u.tokensOut,
+                  costCents: estimateCostCents(u.model, u.tokensIn, u.tokensOut)
+                });
+              } catch (e) {
+                console.error('log vision usage failed:', e);
+              }
+            }
             await insertMessage({
               threadId,
               workspaceId: workspace.id,

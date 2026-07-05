@@ -23,12 +23,13 @@ export interface VisionConsensus {
   severity_hint: string | null;
   models_used: string[];
   by_model: Array<{ model: string; result: VisionSingleResult }>;
+  usage: Array<{ model: string; tokensIn: number; tokensOut: number }>;
 }
 
 async function callVisionModel(
   model: string,
   imageDataUrls: string[]
-): Promise<VisionSingleResult> {
+): Promise<{ result: VisionSingleResult; tokensIn: number; tokensOut: number }> {
   const btl = getBtlClient();
   const resp = await btl.chat.completions.create({
     model,
@@ -49,10 +50,12 @@ async function callVisionModel(
     ]
   });
   const raw = resp.choices[0]?.message?.content ?? '{}';
+  const tokensIn = resp.usage?.prompt_tokens ?? 0;
+  const tokensOut = resp.usage?.completion_tokens ?? 0;
   try {
-    return JSON.parse(raw) as VisionSingleResult;
+    return { result: JSON.parse(raw) as VisionSingleResult, tokensIn, tokensOut };
   } catch {
-    return { raw };
+    return { result: { raw }, tokensIn, tokensOut };
   }
 }
 
@@ -68,12 +71,18 @@ export async function runVisionConsensus(
     callVisionModel(MODELS.VISION_GEMINI, imageDataUrls)
   ]);
 
-  const gpt = results[0].status === 'fulfilled' ? results[0].value : null;
-  const gem = results[1].status === 'fulfilled' ? results[1].value : null;
+  const gptCall = results[0].status === 'fulfilled' ? results[0].value : null;
+  const gemCall = results[1].status === 'fulfilled' ? results[1].value : null;
+  const gpt = gptCall?.result ?? null;
+  const gem = gemCall?.result ?? null;
 
   const byModel: VisionConsensus['by_model'] = [];
   if (gpt) byModel.push({ model: MODELS.VISION_GPT, result: gpt });
   if (gem) byModel.push({ model: MODELS.VISION_GEMINI, result: gem });
+
+  const usage: VisionConsensus['usage'] = [];
+  if (gptCall) usage.push({ model: MODELS.VISION_GPT, tokensIn: gptCall.tokensIn, tokensOut: gptCall.tokensOut });
+  if (gemCall) usage.push({ model: MODELS.VISION_GEMINI, tokensIn: gemCall.tokensIn, tokensOut: gemCall.tokensOut });
 
   const modelsUsed = byModel.map((b) => b.model);
 
@@ -111,7 +120,8 @@ export async function runVisionConsensus(
     })(),
     severity_hint: gpt?.severity_hint ?? gem?.severity_hint ?? null,
     models_used: modelsUsed,
-    by_model: byModel
+    by_model: byModel,
+    usage
   };
 }
 
