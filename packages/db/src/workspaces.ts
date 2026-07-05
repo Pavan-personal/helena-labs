@@ -16,7 +16,33 @@ export interface WorkspaceRow {
   incident_channel_id: string | null;
   incident_channel_name: string | null;
   onboarded: boolean;
+  github_installation_id: number | null;
+  github_repos: string[] | null;
+  github_connected_at: string | null;
+  grafana_url: string | null;
+  grafana_token: string | null;
+  grafana_contact_point_uid: string | null;
+  grafana_connected_at: string | null;
+  sentry_org_slug: string | null;
+  sentry_token: string | null;
+  sentry_projects: string[] | null;
+  sentry_connected_at: string | null;
   created_at: string;
+}
+
+export async function updateWorkspaceIntegration(
+  workspaceId: string,
+  patch: Partial<WorkspaceRow>
+): Promise<WorkspaceRow> {
+  const db = getServerClient();
+  const { data, error } = await db
+    .from('workspaces')
+    .update(patch)
+    .eq('id', workspaceId)
+    .select('*')
+    .single();
+  if (error || !data) throw new Error(`Update integration failed: ${error?.message}`);
+  return data as WorkspaceRow;
 }
 
 export async function getOrCreateWorkspace(input: {

@@ -22,7 +22,20 @@ const EnvSchema = z.object({
   GRAFANA_WEBHOOK_SECRET: z.string().min(1),
   SENTRY_WEBHOOK_TOKEN: z.string().min(1),
   GENERIC_WEBHOOK_KEY: z.string().min(1),
-  CRON_SECRET: z.string().min(1)
+  CRON_SECRET: z.string().min(1),
+
+  GITHUB_APP_ID: z.string().optional(),
+  GITHUB_CLIENT_ID: z.string().optional(),
+  GITHUB_CLIENT_SECRET: z.string().optional(),
+  GITHUB_APP_PRIVATE_KEY: z.string().optional(),
+  GITHUB_WEBHOOK_SECRET: z.string().optional(),
+
+  SENTRY_INTERNAL_TOKEN: z.string().optional(),
+  SENTRY_CLIENT_SECRET: z.string().optional(),
+  SENTRY_ORG_SLUG: z.string().optional(),
+
+  GRAFANA_TOKEN: z.string().optional(),
+  GRAFANA_URL: z.string().optional()
 });
 
 export type Env = z.infer<typeof EnvSchema>;

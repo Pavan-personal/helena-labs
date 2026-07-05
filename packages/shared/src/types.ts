@@ -1,4 +1,4 @@
-export type IncidentSource = 'slack' | 'grafana' | 'sentry' | 'generic' | 'manual';
+export type IncidentSource = 'slack' | 'grafana' | 'sentry' | 'generic' | 'manual' | 'github';
 export type IncidentSeverity = 'low' | 'medium' | 'high' | 'critical';
 export type RunbookStatus = 'draft' | 'approved' | 'rejected';
 export type LlmRole = 'vision' | 'rerank' | 'synth' | 'draft';

@@ -1,14 +1,22 @@
-import { Webhook } from 'lucide-react';
-import { SiDiscord, SiGrafana, SiSentry } from '@icons-pack/react-simple-icons';
-import { requireWorkspace } from '@/lib/session';
+import Link from 'next/link';
+import { Webhook, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { SiDiscord, SiGrafana, SiSentry, SiGithub } from '@icons-pack/react-simple-icons';
+import { requireWorkspace, encodeSessionToken } from '@/lib/session';
 import { CopyRow } from './copy-row';
 
 export const dynamic = 'force-dynamic';
 
-export default async function IntegrationsPage() {
-  const workspace = await requireWorkspace();
+export default async function IntegrationsPage({
+  searchParams
+}: {
+  searchParams: Promise<{ hs?: string; connected?: string; err?: string }>;
+}) {
+  const params = await searchParams;
+  const workspace = await requireWorkspace(params.hs);
   const origin = 'https://helenalabs.vercel.app';
+  const token = encodeSessionToken(workspace.id);
   const secret = workspace.webhook_secret;
+  const linkTo = (href: string) => `${href}?hs=${encodeURIComponent(token)}`;
 
   const grafanaUrl = `${origin}/api/grafana/webhook/${secret}`;
   const sentryUrl = `${origin}/api/errors/sentry/${secret}`;
@@ -17,6 +25,9 @@ export default async function IntegrationsPage() {
   const discordInteractionsUrl = `${origin}/api/discord/interactions`;
 
   const isDiscord = workspace.chat_platform === 'discord';
+  const githubConnected = Boolean(workspace.github_installation_id);
+  const grafanaConnected = Boolean(workspace.grafana_url && workspace.grafana_token);
+  const sentryConnected = Boolean(workspace.sentry_org_slug && workspace.sentry_token);
 
   return (
     <div>
@@ -26,18 +37,34 @@ export default async function IntegrationsPage() {
         </div>
         <h1 className="text-3xl font-semibold tracking-tight text-white mb-2">Integrations</h1>
         <p className="text-sm text-neutral-500 max-w-2xl">
-          Each endpoint below is unique to your workspace. Paste them into the corresponding tool.
-          Treat every URL like a secret &mdash; anyone with one can push data into your memory.
+          Wire helena into your team&rsquo;s tools. One-click install where the vendor supports
+          it, token-based connect where they don&rsquo;t.
         </p>
       </div>
 
+      {params.connected && (
+        <div className="border border-emerald-950 bg-emerald-950/20 text-emerald-300 rounded-lg p-3 mb-6 text-sm flex items-center gap-2">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          <span>
+            {params.connected === 'github' && 'GitHub App installed. We can now see PRs and deployments in your selected repos.'}
+            {params.connected === 'grafana' && 'Grafana Contact Point created. Now attach it in Alerting → Notification Policies.'}
+            {params.connected === 'sentry' && 'Sentry token accepted and projects listed. Any alert rule will now push to helena.'}
+          </span>
+        </div>
+      )}
+
+      {/* Chat platform */}
       <SectionHeader label="Chat platform" count="1 connected" />
       <IntegrationCard
         icon={isDiscord ? <DiscordLogo /> : <SlackLogo />}
         brand={isDiscord ? '#5865F2' : '#611f69'}
         title={isDiscord ? 'Discord' : 'Slack'}
-        subtitle={isDiscord ? workspace.discord_guild_name ?? 'Server' : workspace.slack_team_name ?? 'Workspace'}
-        connected
+        subtitle={
+          isDiscord
+            ? workspace.discord_guild_name ?? 'Server'
+            : workspace.slack_team_name ?? 'Workspace'
+        }
+        status="connected"
         detail={
           workspace.incident_channel_name
             ? `Indexing #${workspace.incident_channel_name}`
@@ -55,38 +82,148 @@ export default async function IntegrationsPage() {
         />
       </IntegrationCard>
 
-      <SectionHeader label="Observability" count="0 connected" hint="wire up when ready" />
+      {/* Code */}
+      <SectionHeader label="Code" count={githubConnected ? '1 connected' : '0 connected'} />
+      <IntegrationCard
+        icon={<GithubLogo />}
+        brand="#8b949e"
+        title="GitHub"
+        subtitle={
+          githubConnected
+            ? `${workspace.github_repos?.length ?? 0} repos visible`
+            : 'PR + deployment correlation'
+        }
+        status={githubConnected ? 'connected' : 'ready'}
+        detail={
+          githubConnected
+            ? workspace.github_repos && workspace.github_repos.length > 0
+              ? workspace.github_repos.slice(0, 3).join(', ') +
+                (workspace.github_repos.length > 3 ? `, +${workspace.github_repos.length - 3} more` : '')
+              : 'No repositories in scope yet'
+            : 'One-click install, pick repos on GitHub'
+        }
+        description="When a PR merges to any watched repo, helena ingests it. When a deployment fails, we surface it in your incident channel. Correlates recent changes with alerts."
+      >
+        {githubConnected ? (
+          <div className="flex items-center gap-2">
+            <a
+              href={`/api/auth/github/install?hs=${encodeURIComponent(token)}`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-neutral-800 text-xs text-neutral-300 hover:border-neutral-600"
+            >
+              Adjust repositories
+            </a>
+            <span className="text-[11px] text-neutral-600">
+              Connected {new Date(workspace.github_connected_at ?? '').toLocaleDateString()}
+            </span>
+          </div>
+        ) : (
+          <a
+            href={`/api/auth/github/install?hs=${encodeURIComponent(token)}`}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-neutral-900 border border-neutral-800 text-sm text-neutral-100 hover:border-neutral-600 hover:bg-neutral-800/50 transition-colors"
+          >
+            <GithubLogo />
+            Install GitHub App
+            <ArrowRight className="h-4 w-4" strokeWidth={2} />
+          </a>
+        )}
+      </IntegrationCard>
+
+      {/* Observability */}
+      <SectionHeader
+        label="Observability"
+        count={`${[grafanaConnected, sentryConnected].filter(Boolean).length} connected`}
+      />
       <IntegrationCard
         icon={<GrafanaLogo />}
         brand="#F46800"
         title="Grafana Cloud"
-        subtitle="Alert webhook"
-        connected={false}
-        detail="Attach to any contact point"
-        description="Grafana Alerting → Contact points → Add contact point → Webhook. Include the rendered panel image so vision can extract signal automatically."
+        subtitle={grafanaConnected ? new URL(workspace.grafana_url ?? '').hostname : 'Alert webhook'}
+        status={grafanaConnected ? 'connected' : 'ready'}
+        detail={
+          grafanaConnected
+            ? `Contact Point uid ${(workspace.grafana_contact_point_uid ?? '').slice(0, 12)}...`
+            : 'One-click via service account token'
+        }
+        description="We create a Contact Point named helena-oncall on your Grafana. You then attach it to any alert rules or notification policies you want to route to us."
       >
-        <CopyRow label="Webhook URL" value={grafanaUrl} />
+        {grafanaConnected ? (
+          <div className="flex items-center gap-2">
+            <Link
+              href={linkTo('/dashboard/integrations/connect/grafana')}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-neutral-800 text-xs text-neutral-300 hover:border-neutral-600"
+            >
+              Update token
+            </Link>
+            <CopyRowInline label="Webhook URL (for manual routing)" value={grafanaUrl} />
+          </div>
+        ) : (
+          <div className="flex items-center gap-3">
+            <Link
+              href={linkTo('/dashboard/integrations/connect/grafana')}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-neutral-900 border border-neutral-800 text-sm text-neutral-100 hover:border-neutral-600 hover:bg-neutral-800/50 transition-colors"
+            >
+              <GrafanaLogo />
+              Connect Grafana
+              <ArrowRight className="h-4 w-4" strokeWidth={2} />
+            </Link>
+            <span className="text-[11px] text-neutral-600">or paste webhook URL manually</span>
+          </div>
+        )}
       </IntegrationCard>
 
       <IntegrationCard
         icon={<SentryLogo />}
         brand="#7553D6"
         title="Sentry"
-        subtitle="Internal integration webhook"
-        connected={false}
-        detail="One integration per Sentry org"
-        description="Sentry → Settings → Custom integrations → Create new integration. Turn on the Alerts checkbox and add the URL below."
+        subtitle={
+          sentryConnected
+            ? `${workspace.sentry_org_slug} · ${workspace.sentry_projects?.length ?? 0} projects`
+            : 'Internal Integration webhook'
+        }
+        status={sentryConnected ? 'connected' : 'ready'}
+        detail={
+          sentryConnected
+            ? (workspace.sentry_projects ?? []).slice(0, 3).join(', ') +
+              ((workspace.sentry_projects ?? []).length > 3
+                ? `, +${(workspace.sentry_projects ?? []).length - 3} more`
+                : '')
+            : 'Paste token → we auto-configure'
+        }
+        description="Sentry does not offer public OAuth for third-party integrations. Paste your Internal Integration token, we verify it and auto-list your projects. Existing alert rules that route to your webhook keep working."
       >
-        <CopyRow label="Webhook URL" value={sentryUrl} />
+        {sentryConnected ? (
+          <div className="flex items-center gap-2">
+            <Link
+              href={linkTo('/dashboard/integrations/connect/sentry')}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-neutral-800 text-xs text-neutral-300 hover:border-neutral-600"
+            >
+              Update token
+            </Link>
+            <CopyRowInline label="Webhook URL (for alert rules)" value={sentryUrl} />
+          </div>
+        ) : (
+          <div className="flex items-center gap-3">
+            <Link
+              href={linkTo('/dashboard/integrations/connect/sentry')}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-neutral-900 border border-neutral-800 text-sm text-neutral-100 hover:border-neutral-600 hover:bg-neutral-800/50 transition-colors"
+            >
+              <SentryLogo />
+              Connect Sentry
+              <ArrowRight className="h-4 w-4" strokeWidth={2} />
+            </Link>
+            <span className="text-[11px] text-neutral-600">or paste webhook URL manually</span>
+          </div>
+        )}
       </IntegrationCard>
 
+      {/* Custom */}
       <SectionHeader label="Custom" />
       <IntegrationCard
         icon={<WebhookLogo />}
         brand="#71717a"
         title="Generic webhook"
         subtitle="Any tool that can POST JSON"
-        connected={false}
+        status="ready"
         detail="Datadog, cron jobs, custom scripts"
         description="POST a JSON body with title, message, source, and severity. Everything else is optional."
       >
@@ -113,22 +250,11 @@ export default async function IntegrationsPage() {
   );
 }
 
-function SectionHeader({
-  label,
-  count,
-  hint
-}: {
-  label: string;
-  count?: string;
-  hint?: string;
-}) {
+function SectionHeader({ label, count }: { label: string; count?: string }) {
   return (
     <div className="flex items-baseline justify-between mt-8 mb-3">
       <div className="text-[11px] uppercase tracking-widest text-neutral-500">{label}</div>
-      <div className="text-[11px] text-neutral-600">
-        {count}
-        {hint && <span className="text-neutral-700"> · {hint}</span>}
-      </div>
+      {count && <div className="text-[11px] text-neutral-600">{count}</div>}
     </div>
   );
 }
@@ -138,7 +264,7 @@ function IntegrationCard({
   brand,
   title,
   subtitle,
-  connected,
+  status,
   detail,
   description,
   children
@@ -147,7 +273,7 @@ function IntegrationCard({
   brand: string;
   title: string;
   subtitle: string;
-  connected: boolean;
+  status: 'connected' | 'ready';
   detail: string;
   description: string;
   children?: React.ReactNode;
@@ -164,7 +290,7 @@ function IntegrationCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <div className="text-base font-semibold text-neutral-50">{title}</div>
-            <StatusBadge connected={connected} />
+            <StatusBadge status={status} />
           </div>
           <div className="flex items-center gap-2 text-xs text-neutral-500">
             <span className="truncate" title={subtitle}>
@@ -181,22 +307,31 @@ function IntegrationCard({
   );
 }
 
-function StatusBadge({ connected }: { connected: boolean }) {
+function StatusBadge({ status }: { status: 'connected' | 'ready' }) {
   return (
     <span
       className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-widest font-medium ${
-        connected
+        status === 'connected'
           ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-900/60'
           : 'bg-neutral-900 text-neutral-500 border border-neutral-800'
       }`}
     >
       <span
         className={`h-1.5 w-1.5 rounded-full ${
-          connected ? 'bg-emerald-400 animate-pulse' : 'bg-neutral-600'
+          status === 'connected' ? 'bg-emerald-400 animate-pulse' : 'bg-neutral-600'
         }`}
       />
-      {connected ? 'Connected' : 'Ready to connect'}
+      {status === 'connected' ? 'Connected' : 'Ready to connect'}
     </span>
+  );
+}
+
+function CopyRowInline({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex-1 min-w-0">
+      <div className="text-[10px] uppercase tracking-widest text-neutral-500 mb-0.5">{label}</div>
+      <code className="block text-[10px] text-neutral-500 truncate">{value}</code>
+    </div>
   );
 }
 
@@ -218,6 +353,9 @@ function GrafanaLogo() {
 }
 function SentryLogo() {
   return <SiSentry size={22} color="#7553D6" />;
+}
+function GithubLogo() {
+  return <SiGithub size={22} color="#f6f8fa" />;
 }
 function WebhookLogo() {
   return <Webhook className="h-5 w-5 text-neutral-400" strokeWidth={1.5} />;

@@ -21,3 +21,5 @@ yarn-debug.log*
 
 .vercel
 *.tsbuildinfo
+*.pem
+.github-app-private-key*

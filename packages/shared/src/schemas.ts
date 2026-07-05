@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const IncidentSourceSchema = z.enum(['slack', 'grafana', 'sentry', 'generic', 'manual']);
+export const IncidentSourceSchema = z.enum(['slack', 'grafana', 'sentry', 'generic', 'manual', 'github']);
 export const IncidentSeveritySchema = z.enum(['low', 'medium', 'high', 'critical']);
 
 export const NormalizedIncidentSchema = z.object({
