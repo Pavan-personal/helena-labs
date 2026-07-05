@@ -1,4 +1,5 @@
 import { Webhook } from 'lucide-react';
+import { SiDiscord, SiGrafana, SiSentry } from '@icons-pack/react-simple-icons';
 import { requireWorkspace } from '@/lib/session';
 import { CopyRow } from './copy-row';
 
@@ -171,28 +172,13 @@ function SlackLogo() {
   );
 }
 function DiscordLogo() {
-  return (
-    <svg viewBox="0 0 24 24" width="22" height="22" fill="#5865F2" aria-hidden="true">
-      <path d="M20.317 4.369A19.79 19.79 0 0 0 16.558 3a13.9 13.9 0 0 0-.653 1.335 18.27 18.27 0 0 0-5.487 0A13 13 0 0 0 9.765 3a19.74 19.74 0 0 0-3.762 1.369c-2.4 3.573-3.05 7.056-2.725 10.492a19.87 19.87 0 0 0 6.06 3.06 14.3 14.3 0 0 0 1.298-2.104 12.85 12.85 0 0 1-2.041-.98c.171-.126.339-.257.5-.39a14.16 14.16 0 0 0 12.11 0c.163.134.331.265.5.39a12.9 12.9 0 0 1-2.043.98 14.31 14.31 0 0 0 1.298 2.103 19.85 19.85 0 0 0 6.061-3.059c.381-3.988-.652-7.44-2.723-10.494zM8.68 14.4c-1.183 0-2.157-1.096-2.157-2.442 0-1.347.955-2.443 2.157-2.443 1.203 0 2.176 1.096 2.157 2.443 0 1.346-.954 2.442-2.157 2.442zm6.638 0c-1.184 0-2.157-1.096-2.157-2.442 0-1.347.955-2.443 2.157-2.443 1.203 0 2.176 1.096 2.157 2.443 0 1.346-.954 2.442-2.157 2.442z" />
-    </svg>
-  );
+  return <SiDiscord size={22} color="#5865F2" />;
 }
 function GrafanaLogo() {
-  return (
-    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" fill="#F46800" />
-      <path d="M8 15c1 2 3 3 5 2s3-3 2-5" stroke="white" strokeWidth="1.6" fill="none" strokeLinecap="round" />
-      <circle cx="15" cy="9" r="1.4" fill="white" />
-    </svg>
-  );
+  return <SiGrafana size={22} color="#F46800" />;
 }
 function SentryLogo() {
-  return (
-    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-      <path fill="#362D59" d="M12 3l9 15h-4l-5-8-2 4h2l1 2h-6l4-7c.4-.8 1.6-.8 2 0z" />
-      <path fill="#362D59" d="M4.4 20l1.6-2.8h2l-1.6 2.8z" />
-    </svg>
-  );
+  return <SiSentry size={22} color="#362D59" />;
 }
 function WebhookLogo() {
   return <Webhook className="h-5 w-5 text-neutral-400" strokeWidth={1.5} />;

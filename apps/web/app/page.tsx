@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Suspense } from 'react';
-import { Cable, Eye, Search, FileText, Coins, MessageSquare } from 'lucide-react';
-import { getWorkspaceFromSession } from '@/lib/session';
+import { Cable, Eye, Search, FileText, Coins, MessageSquare, ArrowRight } from 'lucide-react';
+import { SiDiscord } from '@icons-pack/react-simple-icons';
+import { getWorkspaceFromSession, encodeSessionToken } from '@/lib/session';
 import { LandingSessionCheck } from '@/app/components/session-sync';
 
 export const dynamic = 'force-dynamic';
@@ -21,103 +22,139 @@ export default async function Home({
   const workspace = await getWorkspaceFromSession();
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-8">
+    <main className="relative min-h-screen overflow-hidden">
       <Suspense fallback={null}>
         <LandingSessionCheck />
       </Suspense>
-      <div className="max-w-2xl w-full">
-        <div className="flex items-center gap-2 mb-4">
-          <Image src="/logo.png" alt="helena" width={32} height={32} className="object-contain" priority />
-          <span className="text-xs uppercase tracking-widest text-neutral-500">helena</span>
-        </div>
-        <h1 className="text-5xl font-bold mb-4 tracking-tight leading-tight">
-          Incident memory for on call teams.
-        </h1>
-        <p className="text-lg text-neutral-400 mb-8 leading-relaxed">
-          Every past fix, quietly indexed. When a new alert fires, we surface the resolution
-          your team already worked out. Ingests from Slack, Grafana, and Sentry.
-        </p>
 
-        {params.install_error && (
-          <div className="border border-red-900 bg-red-950 text-red-300 rounded-lg p-3 mb-6 text-sm">
-            <div>Install failed: {params.install_error}. Try again.</div>
-            {params.cookie_len !== undefined && (
-              <div className="mt-2 text-xs opacity-70">
-                Cookie header length: {params.cookie_len}
-                {params.cookie_preview && (
-                  <>
-                    <br />
-                    Cookie preview: <code>{params.cookie_preview}</code>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+      {/* Ambient background */}
+      <div className="pointer-events-none absolute inset-0 z-0">
+        <div className="absolute -top-40 -left-40 h-96 w-96 rounded-full bg-blue-500/[0.06] blur-3xl" />
+        <div className="absolute top-1/2 -right-40 h-96 w-96 rounded-full bg-indigo-500/[0.05] blur-3xl" />
+      </div>
 
-        {params.signed_out && (
-          <div className="border border-neutral-800 rounded-lg p-3 mb-6 text-sm text-neutral-400">
-            Signed out.
+      <div className="relative z-10">
+        <nav className="max-w-6xl mx-auto flex items-center justify-between p-6">
+          <div className="flex items-center gap-2">
+            <Image src="/logo.png" alt="helena" width={28} height={28} className="object-contain" priority />
+            <span className="text-sm font-semibold tracking-tight text-white">helena</span>
           </div>
-        )}
+          <div className="text-xs text-neutral-500">
+            Built on BTL Runtime
+          </div>
+        </nav>
 
-        {workspace ? (
-          <div className="flex gap-3">
-            <Link
-              href="/dashboard"
-              className="px-5 py-2.5 rounded bg-white text-black font-medium hover:bg-neutral-200"
-            >
-              Open {workspace.chat_platform === 'discord' ? workspace.discord_guild_name : workspace.slack_team_name} dashboard
-            </Link>
-            <Link
-              href="/api/auth/signout"
-              className="px-5 py-2.5 rounded border border-neutral-700 hover:border-neutral-500"
-            >
-              Sign out
-            </Link>
+        <section className="max-w-3xl mx-auto px-6 pt-12 pb-16">
+          <div className="mb-6 inline-flex items-center gap-2 px-2.5 py-1 rounded-full border border-neutral-800 bg-neutral-950/60 text-xs text-neutral-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            Incident memory for on-call teams
           </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            <div className="flex gap-3">
-              <a
-                href="/api/auth/slack/install"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded bg-white text-black font-medium hover:bg-neutral-200"
-              >
-                <SlackIcon />
-                Add to Slack
-              </a>
-              <a
-                href="/api/auth/discord/install"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded bg-[#5865F2] text-white font-medium hover:bg-[#4752c4]"
-              >
-                <DiscordIcon />
-                Add to Discord
-              </a>
+
+          <h1 className="text-[64px] leading-[1.02] font-semibold tracking-tight text-white mb-6">
+            No team should re-solve
+            <br />
+            <span className="text-neutral-400">the same fire twice.</span>
+          </h1>
+
+          <p className="text-lg text-neutral-400 leading-relaxed max-w-xl mb-10">
+            helena quietly indexes every past fix from your team&rsquo;s incident channels, dashboards
+            and error trackers. When a new alert fires, it surfaces the resolution your team already
+            worked out.
+          </p>
+
+          {params.install_error && (
+            <div className="border border-red-950 bg-red-950/30 text-red-300 rounded-lg p-3 mb-6 text-sm max-w-md">
+              Install failed: {params.install_error}. Try again.
+              {params.cookie_len !== undefined && (
+                <div className="mt-1.5 text-[11px] opacity-70">
+                  cookie length {params.cookie_len}
+                  {params.cookie_preview && (
+                    <>
+                      {' '}·{' '}<code>{params.cookie_preview}</code>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
-            <span className="text-sm text-neutral-500">Free to try. Pick your chat, install in one click.</span>
-          </div>
-        )}
+          )}
 
-        <div className="grid grid-cols-3 gap-4 mt-16">
-          <Feature Icon={Cable} title="Multi-source ingest">
-            Slack, Discord, Grafana, Sentry, or any webhook POST
-          </Feature>
-          <Feature Icon={Eye} title="Vision aware">
-            Dashboard screenshots parsed by gpt-4o-mini and indexed
-          </Feature>
-          <Feature Icon={Search} title="Retrieval + synthesis">
-            /askoncall returns a runbook card citing past resolutions
-          </Feature>
-          <Feature Icon={FileText} title="Nightly runbook drafts">
-            Resolved threads become reviewable drafts by morning
-          </Feature>
-          <Feature Icon={Coins} title="Cost transparent">
-            Every LLM call logged, per role, per model, per cent
-          </Feature>
-          <Feature Icon={MessageSquare} title="Chat native">
-            Meets your team where they already work
-          </Feature>
-        </div>
+          {params.signed_out && (
+            <div className="border border-neutral-800 rounded-lg p-3 mb-6 text-sm text-neutral-400 max-w-md">
+              Signed out.
+            </div>
+          )}
+
+          {workspace ? (
+            <div className="flex items-center gap-3">
+              <Link
+                href={`/dashboard?hs=${encodeURIComponent(encodeSessionToken(workspace.id))}`}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-white text-neutral-900 font-medium hover:bg-neutral-100 transition-colors"
+              >
+                Open dashboard
+                <ArrowRight className="h-4 w-4" strokeWidth={2} />
+              </Link>
+              <Link
+                href="/api/auth/signout"
+                className="px-5 py-2.5 rounded-lg text-sm text-neutral-400 hover:text-neutral-200"
+              >
+                Sign out
+              </Link>
+            </div>
+          ) : (
+            <div>
+              <div className="flex flex-wrap gap-3">
+                <a
+                  href="/api/auth/slack/install"
+                  className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-lg bg-white text-neutral-900 font-medium hover:bg-neutral-100 transition-colors"
+                >
+                  <SlackMark />
+                  Add to Slack
+                </a>
+                <a
+                  href="/api/auth/discord/install"
+                  className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-lg bg-[#5865F2] text-white font-medium hover:bg-[#4752c4] transition-colors"
+                >
+                  <SiDiscord size={18} color="#ffffff" />
+                  Add to Discord
+                </a>
+              </div>
+              <div className="mt-4 text-xs text-neutral-500">
+                Free tier. One click install. No credit card.
+              </div>
+            </div>
+          )}
+        </section>
+
+        <section className="max-w-5xl mx-auto px-6 pb-24">
+          <div className="text-xs uppercase tracking-widest text-neutral-500 mb-4">
+            What helena does
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <Feature Icon={Cable} title="Multi-source ingest">
+              Slack, Discord, Grafana, Sentry, or any webhook POST
+            </Feature>
+            <Feature Icon={Eye} title="Vision aware">
+              Dashboard screenshots parsed by gpt-4o-mini and indexed
+            </Feature>
+            <Feature Icon={Search} title="Retrieval + synthesis">
+              /askoncall returns a runbook card citing past resolutions
+            </Feature>
+            <Feature Icon={FileText} title="Nightly runbook drafts">
+              Resolved threads become reviewable drafts by morning
+            </Feature>
+            <Feature Icon={Coins} title="Cost transparent">
+              Every LLM call logged, per role, per model, per cent
+            </Feature>
+            <Feature Icon={MessageSquare} title="Chat native">
+              Meets your team where they already work
+            </Feature>
+          </div>
+        </section>
+
+        <footer className="max-w-5xl mx-auto px-6 pb-10 flex items-center justify-between text-xs text-neutral-600">
+          <div>helena · incident memory</div>
+          <div>Built with BTL Runtime for the Runtime Hackathon</div>
+        </footer>
       </div>
     </main>
   );
@@ -133,29 +170,21 @@ function Feature({
   children: React.ReactNode;
 }) {
   return (
-    <div className="border border-neutral-800 rounded-lg p-4 bg-neutral-950/40">
-      <Icon className="h-4 w-4 text-neutral-500 mb-2" strokeWidth={1.75} />
-      <div className="text-sm font-medium text-neutral-200 mb-1">{title}</div>
+    <div className="rounded-xl border border-neutral-800 bg-neutral-950/40 p-5 hover:border-neutral-700 transition-colors">
+      <Icon className="h-5 w-5 text-neutral-400 mb-3" strokeWidth={1.5} />
+      <div className="text-sm font-medium text-neutral-100 mb-1.5">{title}</div>
       <div className="text-xs text-neutral-500 leading-relaxed">{children}</div>
     </div>
   );
 }
 
-function SlackIcon() {
+function SlackMark() {
   return (
     <svg viewBox="0 0 122.8 122.8" width="18" height="18" aria-hidden="true">
-      <path fill="#E01E5A" d="M25.8 77.6c0 7.1-5.8 12.9-12.9 12.9S0 84.7 0 77.6s5.8-12.9 12.9-12.9h12.9v12.9zm6.5 0c0-7.1 5.8-12.9 12.9-12.9s12.9 5.8 12.9 12.9v32.3c0 7.1-5.8 12.9-12.9 12.9s-12.9-5.8-12.9-12.9V77.6z"/>
-      <path fill="#36C5F0" d="M45.2 25.8c-7.1 0-12.9-5.8-12.9-12.9S38.1 0 45.2 0s12.9 5.8 12.9 12.9v12.9H45.2zm0 6.5c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H12.9C5.8 58.1 0 52.3 0 45.2s5.8-12.9 12.9-12.9h32.3z"/>
-      <path fill="#2EB67D" d="M97 45.2c0-7.1 5.8-12.9 12.9-12.9s12.9 5.8 12.9 12.9-5.8 12.9-12.9 12.9H97V45.2zm-6.5 0c0 7.1-5.8 12.9-12.9 12.9s-12.9-5.8-12.9-12.9V12.9C64.7 5.8 70.5 0 77.6 0s12.9 5.8 12.9 12.9v32.3z"/>
-      <path fill="#ECB22E" d="M77.6 97c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9-12.9-5.8-12.9-12.9V97h12.9zm0-6.5c-7.1 0-12.9-5.8-12.9-12.9s5.8-12.9 12.9-12.9h32.3c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H77.6z"/>
-    </svg>
-  );
-}
-
-function DiscordIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
-      <path d="M20.317 4.369A19.79 19.79 0 0 0 16.558 3a13.9 13.9 0 0 0-.653 1.335 18.27 18.27 0 0 0-5.487 0A13 13 0 0 0 9.765 3a19.74 19.74 0 0 0-3.762 1.369c-2.4 3.573-3.05 7.056-2.725 10.492a19.87 19.87 0 0 0 6.06 3.06 14.3 14.3 0 0 0 1.298-2.104 12.85 12.85 0 0 1-2.041-.98c.171-.126.339-.257.5-.39a14.16 14.16 0 0 0 12.11 0c.163.134.331.265.5.39a12.9 12.9 0 0 1-2.043.98 14.31 14.31 0 0 0 1.298 2.103 19.85 19.85 0 0 0 6.061-3.059c.381-3.988-.652-7.44-2.723-10.494zM8.68 14.4c-1.183 0-2.157-1.096-2.157-2.442 0-1.347.955-2.443 2.157-2.443 1.203 0 2.176 1.096 2.157 2.443 0 1.346-.954 2.442-2.157 2.442zm6.638 0c-1.184 0-2.157-1.096-2.157-2.442 0-1.347.955-2.443 2.157-2.443 1.203 0 2.176 1.096 2.157 2.443 0 1.346-.954 2.442-2.157 2.442z"/>
+      <path fill="#E01E5A" d="M25.8 77.6c0 7.1-5.8 12.9-12.9 12.9S0 84.7 0 77.6s5.8-12.9 12.9-12.9h12.9v12.9zm6.5 0c0-7.1 5.8-12.9 12.9-12.9s12.9 5.8 12.9 12.9v32.3c0 7.1-5.8 12.9-12.9 12.9s-12.9-5.8-12.9-12.9V77.6z" />
+      <path fill="#36C5F0" d="M45.2 25.8c-7.1 0-12.9-5.8-12.9-12.9S38.1 0 45.2 0s12.9 5.8 12.9 12.9v12.9H45.2zm0 6.5c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H12.9C5.8 58.1 0 52.3 0 45.2s5.8-12.9 12.9-12.9h32.3z" />
+      <path fill="#2EB67D" d="M97 45.2c0-7.1 5.8-12.9 12.9-12.9s12.9 5.8 12.9 12.9-5.8 12.9-12.9 12.9H97V45.2zm-6.5 0c0 7.1-5.8 12.9-12.9 12.9s-12.9-5.8-12.9-12.9V12.9C64.7 5.8 70.5 0 77.6 0s12.9 5.8 12.9 12.9v32.3z" />
+      <path fill="#ECB22E" d="M77.6 97c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9-12.9-5.8-12.9-12.9V97h12.9zm0-6.5c-7.1 0-12.9-5.8-12.9-12.9s5.8-12.9 12.9-12.9h32.3c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H77.6z" />
     </svg>
   );
 }
