@@ -1,3 +1,4 @@
+import { Webhook } from 'lucide-react';
 import { requireWorkspace } from '@/lib/session';
 import { CopyRow } from './copy-row';
 
@@ -194,12 +195,5 @@ function SentryLogo() {
   );
 }
 function WebhookLogo() {
-  return (
-    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#9ca3af" strokeWidth="1.75" aria-hidden="true">
-      <circle cx="7" cy="14" r="3" />
-      <circle cx="17" cy="14" r="3" />
-      <circle cx="12" cy="7" r="3" />
-      <path d="M12 10v3l-4 3M15 12l4 2" />
-    </svg>
-  );
+  return <Webhook className="h-5 w-5 text-neutral-400" strokeWidth={1.5} />;
 }

@@ -1,5 +1,7 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Suspense } from 'react';
+import { Cable, Eye, Search, FileText, Coins, MessageSquare } from 'lucide-react';
 import { getWorkspaceFromSession } from '@/lib/session';
 import { LandingSessionCheck } from '@/app/components/session-sync';
 
@@ -24,7 +26,10 @@ export default async function Home({
         <LandingSessionCheck />
       </Suspense>
       <div className="max-w-2xl w-full">
-        <div className="mb-3 text-xs uppercase tracking-widest text-neutral-500">helena</div>
+        <div className="flex items-center gap-2 mb-4">
+          <Image src="/logo.svg" alt="helena" width={28} height={28} className="rounded" priority />
+          <span className="text-xs uppercase tracking-widest text-neutral-500">helena</span>
+        </div>
         <h1 className="text-5xl font-bold mb-4 tracking-tight leading-tight">
           Incident memory for on call teams.
         </h1>
@@ -94,23 +99,23 @@ export default async function Home({
         )}
 
         <div className="grid grid-cols-3 gap-4 mt-16">
-          <Feature title="Multi source ingest">
-            Slack messages, Grafana alerts, Sentry issues, or any webhook post
+          <Feature Icon={Cable} title="Multi-source ingest">
+            Slack, Discord, Grafana, Sentry, or any webhook POST
           </Feature>
-          <Feature title="Vision aware">
-            Screenshots of dashboards get parsed by GPT 4o mini and indexed
+          <Feature Icon={Eye} title="Vision aware">
+            Dashboard screenshots parsed by gpt-4o-mini and indexed
           </Feature>
-          <Feature title="Retrieval + synthesis">
-            /askoncall in Slack returns a runbook card citing past resolutions
+          <Feature Icon={Search} title="Retrieval + synthesis">
+            /askoncall returns a runbook card citing past resolutions
           </Feature>
-          <Feature title="Nightly runbook drafts">
-            Resolved incident threads turn into reviewable drafts by morning
+          <Feature Icon={FileText} title="Nightly runbook drafts">
+            Resolved threads become reviewable drafts by morning
           </Feature>
-          <Feature title="Cost transparent">
-            Every LLM call logged, per role and per model, cents visible
+          <Feature Icon={Coins} title="Cost transparent">
+            Every LLM call logged, per role, per model, per cent
           </Feature>
-          <Feature title="Slack native">
-            Meets your team where they already work, no new tab to open
+          <Feature Icon={MessageSquare} title="Chat native">
+            Meets your team where they already work
           </Feature>
         </div>
       </div>
@@ -118,10 +123,19 @@ export default async function Home({
   );
 }
 
-function Feature({ title, children }: { title: string; children: React.ReactNode }) {
+function Feature({
+  Icon,
+  title,
+  children
+}: {
+  Icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="border border-neutral-800 rounded-lg p-4">
-      <div className="text-sm font-medium mb-1">{title}</div>
+    <div className="border border-neutral-800 rounded-lg p-4 bg-neutral-950/40">
+      <Icon className="h-4 w-4 text-neutral-500 mb-2" strokeWidth={1.75} />
+      <div className="text-sm font-medium text-neutral-200 mb-1">{title}</div>
       <div className="text-xs text-neutral-500 leading-relaxed">{children}</div>
     </div>
   );

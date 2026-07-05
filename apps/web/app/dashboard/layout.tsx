@@ -1,19 +1,29 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import type { ReactNode } from 'react';
 import { Suspense } from 'react';
+import {
+  LayoutGrid,
+  AlertTriangle,
+  FileEdit,
+  BookOpen,
+  Plug,
+  Activity,
+  User
+} from 'lucide-react';
 import { requireWorkspace, encodeSessionToken } from '@/lib/session';
 import { SessionSync, SignOutButton } from '@/app/components/session-sync';
 
 export const dynamic = 'force-dynamic';
 
 const NAV = [
-  { href: '/dashboard', label: 'Overview', icon: OverviewIcon },
-  { href: '/dashboard/incidents', label: 'Incidents', icon: IncidentsIcon },
-  { href: '/dashboard/drafts', label: 'Runbook drafts', icon: DraftsIcon },
-  { href: '/dashboard/runbooks', label: 'Runbooks', icon: RunbooksIcon },
-  { href: '/dashboard/integrations', label: 'Integrations', icon: IntegrationsIcon },
-  { href: '/dashboard/usage', label: 'Usage & cost', icon: UsageIcon },
-  { href: '/dashboard/profile', label: 'Profile', icon: ProfileIcon }
+  { href: '/dashboard', label: 'Overview', Icon: LayoutGrid },
+  { href: '/dashboard/incidents', label: 'Incidents', Icon: AlertTriangle },
+  { href: '/dashboard/drafts', label: 'Runbook drafts', Icon: FileEdit },
+  { href: '/dashboard/runbooks', label: 'Runbooks', Icon: BookOpen },
+  { href: '/dashboard/integrations', label: 'Integrations', Icon: Plug },
+  { href: '/dashboard/usage', label: 'Usage & cost', Icon: Activity },
+  { href: '/dashboard/profile', label: 'Profile', Icon: User }
 ];
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
@@ -40,13 +50,20 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       <div className="h-screen grid grid-cols-[248px_1fr] overflow-hidden">
         <aside className="border-r border-neutral-800 bg-neutral-950 flex flex-col h-screen overflow-hidden">
           <div className="p-4 border-b border-neutral-900">
-            <Link href={withToken('/dashboard')} className="flex items-center gap-2 mb-3">
-              <div className="h-7 w-7 rounded bg-white text-black text-sm font-bold flex items-center justify-center">
-                h
+            <Link href={withToken('/dashboard')} className="flex items-center gap-2.5 mb-4">
+              <div className="h-8 w-8 rounded-md bg-white/95 flex items-center justify-center overflow-hidden">
+                <Image
+                  src="/logo.svg"
+                  alt="helena"
+                  width={32}
+                  height={32}
+                  className="h-8 w-8 object-contain"
+                  priority
+                />
               </div>
               <span className="text-lg font-semibold tracking-tight text-white">helena</span>
             </Link>
-            <div className="flex items-center gap-2 p-2 rounded border border-neutral-800 bg-neutral-900/60">
+            <div className="flex items-center gap-2.5 p-2.5 rounded-lg border border-neutral-800 bg-neutral-900/60">
               <div
                 className={`h-8 w-8 rounded flex items-center justify-center text-xs font-semibold ${
                   workspace.chat_platform === 'discord'
@@ -71,25 +88,25 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           </div>
 
           <nav className="flex-1 overflow-y-auto scrollbar-none p-3 space-y-0.5">
-            {NAV.map((item) => (
+            {NAV.map(({ href, label, Icon }) => (
               <Link
-                key={item.href}
-                href={withToken(item.href)}
-                className="flex items-center gap-3 px-3 py-2 rounded text-sm text-neutral-300 hover:bg-neutral-900 hover:text-white transition-colors"
+                key={href}
+                href={withToken(href)}
+                className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-neutral-400 hover:bg-neutral-900 hover:text-white transition-colors"
               >
-                <item.icon />
-                <span>{item.label}</span>
+                <Icon className="h-4 w-4 shrink-0" strokeWidth={1.75} />
+                <span>{label}</span>
               </Link>
             ))}
           </nav>
 
           <div className="border-t border-neutral-900 p-3">
             {workspace.installer_email && (
-              <div className="text-xs text-neutral-400 mb-1 truncate" title={workspace.installer_email}>
+              <div className="text-xs text-neutral-400 mb-1.5 truncate" title={workspace.installer_email}>
                 {workspace.installer_email}
               </div>
             )}
-            <SignOutButton className="text-xs text-neutral-500 hover:text-neutral-300">
+            <SignOutButton className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors">
               Sign out
             </SignOutButton>
           </div>
@@ -99,66 +116,5 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         </main>
       </div>
     </>
-  );
-}
-
-function OverviewIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="text-neutral-500">
-      <rect x="3" y="3" width="7" height="7" rx="1" />
-      <rect x="14" y="3" width="7" height="7" rx="1" />
-      <rect x="3" y="14" width="7" height="7" rx="1" />
-      <rect x="14" y="14" width="7" height="7" rx="1" />
-    </svg>
-  );
-}
-function IncidentsIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="text-neutral-500">
-      <path d="M12 3l9 16H3l9-16z" />
-      <path d="M12 10v4" />
-      <circle cx="12" cy="17" r="0.6" fill="currentColor" />
-    </svg>
-  );
-}
-function DraftsIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="text-neutral-500">
-      <path d="M4 4h13l3 3v13H4z" />
-      <path d="M8 12h8M8 16h5" />
-    </svg>
-  );
-}
-function RunbooksIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="text-neutral-500">
-      <path d="M5 4h11a3 3 0 013 3v14H8a3 3 0 01-3-3V4z" />
-      <path d="M8 8h8M8 12h8M8 16h5" />
-    </svg>
-  );
-}
-function IntegrationsIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="text-neutral-500">
-      <path d="M10 3v6a2 2 0 002 2h6" />
-      <path d="M21 14v-4h-6a2 2 0 00-2 2v4a2 2 0 002 2h4l2 2v-6z" />
-      <path d="M3 10a2 2 0 012-2h5v7a2 2 0 01-2 2H3z" />
-    </svg>
-  );
-}
-function UsageIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="text-neutral-500">
-      <path d="M3 3v18h18" />
-      <path d="M7 15l4-6 3 4 5-7" />
-    </svg>
-  );
-}
-function ProfileIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="text-neutral-500">
-      <circle cx="12" cy="8" r="4" />
-      <path d="M4 21c1.5-4 5-6 8-6s6.5 2 8 6" />
-    </svg>
   );
 }
