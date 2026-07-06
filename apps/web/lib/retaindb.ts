@@ -46,7 +46,12 @@ async function post(path: string, body: unknown): Promise<RetainPostResult> {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${key}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        // Cloudflare in front of api.retaindb.com fingerprints the default
+        // Node/undici UA as a bot and serves a challenge page. Setting a
+        // real UA (and Accept) makes the request pass through.
+        'User-Agent': 'helena/1.0 (+https://helenalabs.vercel.app)'
       },
       body: JSON.stringify(body),
       signal: ctrl.signal
