@@ -197,9 +197,20 @@ async function toolSearchIncidents(ctx: ToolContext, args: Record<string, unknow
   const filtered =
     severity === 'any' ? rows : rows.filter((r) => r.severity === severity);
 
+  // Diagnostic — never fatal. Keeps whichever RetainDB signal we saw visible
+  // in tool_result so we can see why the fallback fired.
+  const retainDebug = retain
+    ? {
+        source: 'postgres_fts',
+        retain_hits: retain.hits.length,
+        retain_first_content_prefix: retain.hits[0]?.content?.slice(0, 32) ?? null,
+        retain_latency_ms: retain.latencyMs
+      }
+    : { source: 'postgres_fts', retain: 'null (env, timeout, or network)' };
+
   return {
     count: filtered.length,
-    retrieval: { source: 'postgres_fts' },
+    retrieval: retainDebug,
     incidents: filtered.slice(0, limit).map((r) => ({
       id: r.id.slice(0, 8),
       full_id: r.id,
