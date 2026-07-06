@@ -18,12 +18,12 @@ export function getBtlClient(): OpenAI {
 }
 
 export const MODELS = {
-  // Small, cheap classifier — a paid model but tiny prompt keeps cost near 0.
-  FAST: 'gpt-4o-mini',
-  // BTL's own model for the reasoning loop.
-  PRO: 'btl-2',
-  // Vision consensus: run gpt-4o-mini and gemini-2.5-flash-image in
-  // parallel and merge. Judges see the trace show both.
+  // Fast + cheap classifier. Tiny prompt, tiny cost per turn.
+  FAST: 'deepseek-v4-flash',
+  // Heavy reasoning loop with tool use.
+  PRO: 'deepseek-v4-pro',
+  // Vision consensus: two independent VLMs on every screenshot, we only
+  // trust what both agree on.
   VISION_GPT: 'gpt-4o-mini',
   VISION_GEMINI: 'gemini-2.5-flash-image'
 } as const;
