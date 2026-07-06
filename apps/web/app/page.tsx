@@ -16,6 +16,7 @@ import {
 import { SiDiscord, SiGithub, SiGrafana, SiSentry } from '@icons-pack/react-simple-icons';
 import { getWorkspaceFromSession, encodeSessionToken } from '@/lib/session';
 import { LandingSessionCheck } from '@/app/components/session-sync';
+import { AnimatedTrace } from '@/app/components/animated-trace';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,18 +62,13 @@ export default async function Home({
             <Image src="/logo.png" alt="helena" width={26} height={26} priority />
             <span className="text-[15px] font-semibold tracking-tight text-white">helena</span>
           </div>
-          <div className="flex items-center gap-6 text-xs text-neutral-400">
-            <a href="#how" className="hover:text-neutral-100">How it works</a>
-            <a href="#integrations" className="hover:text-neutral-100">Integrations</a>
-            <a href="#tech" className="hover:text-neutral-100">Under the hood</a>
-            <Link
-              href={demoHref}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-neutral-800 hover:border-neutral-600 text-neutral-200"
-            >
-              Try live demo
-              <ArrowRight className="h-3 w-3" strokeWidth={2} />
-            </Link>
-          </div>
+          <Link
+            href={demoHref}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-md border border-neutral-800 hover:border-neutral-600 text-xs text-neutral-200"
+          >
+            Try live demo
+            <ArrowRight className="h-3 w-3" strokeWidth={2} />
+          </Link>
         </nav>
 
         {/* HERO */}
@@ -176,7 +172,7 @@ export default async function Home({
 
             {/* Right: live-looking trace stream */}
             <div className="lg:mt-2">
-              <TraceMockup />
+              <AnimatedTrace />
             </div>
           </div>
         </section>

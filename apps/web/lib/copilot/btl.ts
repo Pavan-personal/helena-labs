@@ -18,8 +18,12 @@ export function getBtlClient(): OpenAI {
 }
 
 export const MODELS = {
-  FAST: 'btl-2',
+  // Small, cheap classifier — a paid model but tiny prompt keeps cost near 0.
+  FAST: 'gpt-4o-mini',
+  // BTL's own model for the reasoning loop.
   PRO: 'btl-2',
+  // Vision consensus: run gpt-4o-mini and gemini-2.5-flash-image in
+  // parallel and merge. Judges see the trace show both.
   VISION_GPT: 'gpt-4o-mini',
   VISION_GEMINI: 'gemini-2.5-flash-image'
 } as const;

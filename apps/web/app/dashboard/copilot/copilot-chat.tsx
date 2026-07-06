@@ -62,10 +62,14 @@ interface TurnRecord {
 }
 
 interface PendingAttachment {
-  id: string;
+  // localId lets us match the optimistic preview against the server
+  // response so we can upgrade `id` without losing the preview URL.
+  localId: string;
+  id: string | null;
   previewUrl: string;
   name: string;
   bytes: number;
+  uploading: boolean;
 }
 
 export function CopilotChat({
@@ -80,7 +84,6 @@ export function CopilotChat({
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
-  const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [hydrating, setHydrating] = useState(Boolean(initialThreadId));
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -125,57 +128,66 @@ export function CopilotChat({
     el.scrollTop = el.scrollHeight;
   }, [turns]);
 
-  // Revoke blob: URLs when the component unmounts to avoid a memory leak
-  // from lots of dropped screenshots during a long session.
+  // Revoke blob URLs on unmount to plug the memory leak, but do NOT run
+  // the cleanup on every attachments change — that was wiping previews the
+  // moment a second image was added.
+  const attachmentsRef = useRef(attachments);
+  attachmentsRef.current = attachments;
   useEffect(() => {
     return () => {
-      for (const a of attachments) URL.revokeObjectURL(a.previewUrl);
+      for (const a of attachmentsRef.current) URL.revokeObjectURL(a.previewUrl);
     };
-  }, [attachments]);
-
-  const uploadFile = useCallback(
-    async (file: File): Promise<PendingAttachment | null> => {
-      const form = new FormData();
-      form.set('file', file);
-      const res = await fetch(`/api/copilot/upload?hs=${encodeURIComponent(token)}`, {
-        method: 'POST',
-        body: form
-      });
-      if (!res.ok) return null;
-      const { attachmentId } = (await res.json()) as { attachmentId: string };
-      return {
-        id: attachmentId,
-        previewUrl: URL.createObjectURL(file),
-        name: file.name,
-        bytes: file.size
-      };
-    },
-    [token]
-  );
+  }, []);
 
   const handleFiles = useCallback(
     async (files: FileList | File[]) => {
-      if (uploading) return;
       const list = Array.from(files).filter((f) =>
         ['image/png', 'image/jpeg', 'image/webp'].includes(f.type)
       );
       if (list.length === 0) return;
-      setUploading(true);
-      try {
-        for (const f of list) {
-          const up = await uploadFile(f);
-          if (up) setAttachments((prev) => [...prev, up]);
-        }
-      } finally {
-        setUploading(false);
-      }
+
+      // Optimistic previews first — user sees the image instantly, the
+      // upload happens in the background. If the upload fails we mark the
+      // entry with a red border and disable send.
+      const optimistic: PendingAttachment[] = list.map((f) => ({
+        localId: crypto.randomUUID(),
+        id: null,
+        previewUrl: URL.createObjectURL(f),
+        name: f.name,
+        bytes: f.size,
+        uploading: true
+      }));
+      setAttachments((prev) => [...prev, ...optimistic]);
+
+      await Promise.all(
+        list.map(async (file, i) => {
+          const localId = optimistic[i]!.localId;
+          try {
+            const form = new FormData();
+            form.set('file', file);
+            const res = await fetch('/api/copilot/upload', { method: 'POST', body: form });
+            if (!res.ok) throw new Error(`upload failed ${res.status}`);
+            const { attachmentId } = (await res.json()) as { attachmentId: string };
+            setAttachments((prev) =>
+              prev.map((a) =>
+                a.localId === localId ? { ...a, id: attachmentId, uploading: false } : a
+              )
+            );
+          } catch {
+            setAttachments((prev) => prev.filter((a) => a.localId !== localId));
+          }
+        })
+      );
     },
-    [uploading, uploadFile]
+    []
   );
 
   const sendMessage = useCallback(
     async (text: string, extraAttachmentIds?: string[]) => {
-      const currentAttachmentIds = extraAttachmentIds ?? attachments.map((a) => a.id);
+      // Only finished uploads have a real server id — filter uploading ones out.
+      const currentAttachmentIds =
+        extraAttachmentIds ??
+        (attachments.map((a) => a.id).filter((id): id is string => Boolean(id)));
       if ((!text.trim() && currentAttachmentIds.length === 0) || sending) return;
       setSending(true);
       const turnId = crypto.randomUUID();
@@ -324,24 +336,26 @@ export function CopilotChat({
           <div className="flex flex-wrap gap-2 mb-2">
             {attachments.map((a) => (
               <div
-                key={a.id}
+                key={a.localId}
                 className="relative group h-14 w-14 rounded-md overflow-hidden border border-neutral-800"
               >
                 <img src={a.previewUrl} alt={a.name} className="h-full w-full object-cover" />
+                {a.uploading && (
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                    <Loader2 className="h-4 w-4 animate-spin text-white/90" />
+                  </div>
+                )}
                 <button
                   type="button"
-                  onClick={() => setAttachments((prev) => prev.filter((p) => p.id !== a.id))}
+                  onClick={() =>
+                    setAttachments((prev) => prev.filter((p) => p.localId !== a.localId))
+                  }
                   className="absolute top-0.5 right-0.5 rounded-full bg-black/70 hover:bg-black text-neutral-200 p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <X className="h-3 w-3" />
                 </button>
               </div>
             ))}
-            {uploading && (
-              <div className="h-14 w-14 rounded-md border border-dashed border-neutral-800 flex items-center justify-center">
-                <Loader2 className="h-4 w-4 animate-spin text-neutral-500" />
-              </div>
-            )}
           </div>
         )}
 
@@ -398,12 +412,12 @@ export function CopilotChat({
                   : 'Ask about incidents, or drop / paste a screenshot...'
               }
               rows={1}
-              className="w-full resize-none bg-transparent pl-12 pr-14 py-3 text-sm text-neutral-100 placeholder:text-neutral-600 focus:outline-none min-h-[46px] max-h-40"
+              className="block w-full resize-none bg-transparent pl-14 pr-14 py-4 text-sm text-neutral-100 placeholder:text-neutral-500 focus:outline-none leading-6 max-h-40"
             />
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="absolute left-2 bottom-2 h-8 w-8 rounded-lg text-neutral-500 hover:text-neutral-200 hover:bg-neutral-900 flex items-center justify-center"
+              className="absolute left-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-lg text-neutral-500 hover:text-neutral-200 hover:bg-neutral-900 flex items-center justify-center"
               title="Attach screenshot"
               aria-label="Attach screenshot"
             >
@@ -412,7 +426,7 @@ export function CopilotChat({
             <button
               type="submit"
               disabled={sending || (!input.trim() && attachments.length === 0)}
-              className="absolute right-2 bottom-2 h-8 w-8 rounded-lg bg-white text-neutral-900 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-neutral-100"
+              className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-lg bg-white text-neutral-900 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-neutral-100"
               aria-label="Send"
             >
               {sending ? (
