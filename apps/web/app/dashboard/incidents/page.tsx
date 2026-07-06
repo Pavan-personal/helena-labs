@@ -30,7 +30,7 @@ export default async function IncidentsPage({
   const params = await searchParams;
   const workspace = await requireWorkspace(params.hs);
   const token = encodeSessionToken(workspace.id);
-  const linkTo = (href: string) => `${href}?hs=${encodeURIComponent(token)}`;
+  const linkTo = (href: string) => href;
   const incidents = await listIncidents(workspace.id, { limit: 200 });
 
   return (

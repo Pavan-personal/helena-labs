@@ -30,8 +30,14 @@ const NAV = [
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const workspace = await requireWorkspace();
-  const token = encodeSessionToken(workspace.id);
-  const withToken = (href: string) => `${href}?hs=${encodeURIComponent(token)}`;
+  // Cookie is set by /api/auth/demo, /api/auth/slack/callback, or
+  // /api/auth/discord/callback — so nav links don't need to carry the
+  // token in the URL. Middleware still accepts ?hs= as fallback if the
+  // cookie is missing (e.g., third-party contexts).
+  const withToken = (href: string) => href;
+  // Retained for edge cases where a hard link off-app needs the token.
+  const _token = encodeSessionToken(workspace.id);
+  void _token;
 
   const displayName =
     workspace.chat_platform === 'discord'

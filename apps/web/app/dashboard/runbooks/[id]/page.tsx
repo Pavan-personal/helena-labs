@@ -26,7 +26,7 @@ export default async function RunbookDetailPage({
   const sp = await searchParams;
   const workspace = await requireWorkspace(sp.hs);
   const token = encodeSessionToken(workspace.id);
-  const linkTo = (href: string) => `${href}?hs=${encodeURIComponent(token)}`;
+  const linkTo = (href: string) => href;
 
   const db = getServerClient();
   const isFullUuid = /^[0-9a-f-]{36}$/i.test(id);

@@ -35,7 +35,7 @@ export default async function IncidentDetailPage({
   const sp = await searchParams;
   const workspace = await requireWorkspace(sp.hs);
   const token = encodeSessionToken(workspace.id);
-  const linkTo = (href: string) => `${href}?hs=${encodeURIComponent(token)}`;
+  const linkTo = (href: string) => href;
 
   const db = getServerClient();
   let query = db

@@ -606,10 +606,11 @@ function AssistantBubble({
  * Turn "[INC-abcdef]" and "[RB-abcdef]" into real markdown links first so
  * react-markdown renders them as clickable <a>, then style the <a> as pills.
  */
-function preprocessCitationsToLinks(text: string, token: string): string {
+function preprocessCitationsToLinks(text: string, _token: string): string {
   return text.replace(/\[(INC|RB)-([a-f0-9]{6,})\]/gi, (_, kind, id) => {
     const route = String(kind).toUpperCase() === 'INC' ? 'incidents' : 'runbooks';
-    const url = `/dashboard/${route}/${id}?hs=${encodeURIComponent(token)}`;
+    // Cookie carries auth; no need to expose the session token in the URL.
+    const url = `/dashboard/${route}/${id}`;
     return `[${String(kind).toUpperCase()}-${id.slice(0, 6)}](${url})`;
   });
 }

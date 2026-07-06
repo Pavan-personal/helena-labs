@@ -22,7 +22,7 @@ const SEVERITY_STYLES: Record<string, string> = {
 export default async function DashboardHome() {
   const workspace = await requireWorkspace();
   const token = encodeSessionToken(workspace.id);
-  const linkTo = (href: string) => `${href}?hs=${encodeURIComponent(token)}`;
+  const linkTo = (href: string) => href;
   const [incidents, drafts, runbooks, usage] = await Promise.all([
     listIncidents(workspace.id, { limit: 8 }),
     listDrafts(workspace.id, 'draft'),

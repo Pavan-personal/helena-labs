@@ -19,7 +19,7 @@ import { LandingSessionCheck } from '@/app/components/session-sync';
 
 export const dynamic = 'force-dynamic';
 
-const DEMO_WORKSPACE_ID = '77aa1d7d-a3ae-4dc5-bb92-e07abe81a5f5';
+const DEMO_WORKSPACE_ID = 'de11de11-de11-4de1-8de1-de11de11de11';
 
 export default async function Home({
   searchParams
@@ -34,6 +34,11 @@ export default async function Home({
   // Demo login: server sets an httpOnly cookie, then redirects. The token
   // never appears in the URL. Real production flows use the same cookie.
   const demoHref = `/api/auth/demo`;
+  // A logged-in visitor is only "real" if they installed via Slack/Discord.
+  // Demo tenant cookies also show up here but we don't want to nudge them
+  // toward "Open dashboard" — the CTA stays "Try live demo" so behavior is
+  // predictable across refresh and doesn't leak their token into the link.
+  const isRealInstall = Boolean(workspace && workspace.id !== DEMO_WORKSPACE_ID);
   // Kept in case we ever want to link into a specific subpath.
   const _demoToken = encodeSessionToken(DEMO_WORKSPACE_ID);
   void _demoToken;
@@ -103,10 +108,10 @@ export default async function Home({
                 </div>
               )}
 
-              {workspace ? (
+              {isRealInstall ? (
                 <div className="flex items-center gap-3">
                   <Link
-                    href={`/dashboard?hs=${encodeURIComponent(encodeSessionToken(workspace.id))}`}
+                    href="/dashboard"
                     className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-white text-neutral-900 font-medium hover:bg-neutral-100"
                   >
                     Open dashboard

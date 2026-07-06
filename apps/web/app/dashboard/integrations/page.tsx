@@ -16,7 +16,7 @@ export default async function IntegrationsPage({
   const origin = 'https://helenalabs.vercel.app';
   const token = encodeSessionToken(workspace.id);
   const secret = workspace.webhook_secret;
-  const linkTo = (href: string) => `${href}?hs=${encodeURIComponent(token)}`;
+  const linkTo = (href: string) => href;
 
   const grafanaUrl = `${origin}/api/grafana/webhook/${secret}`;
   const sentryUrl = `${origin}/api/errors/sentry/${secret}`;

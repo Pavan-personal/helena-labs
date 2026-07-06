@@ -13,7 +13,7 @@ export default async function RunbooksPage({
   const params = await searchParams;
   const workspace = await requireWorkspace(params.hs);
   const token = encodeSessionToken(workspace.id);
-  const linkTo = (href: string) => `${href}?hs=${encodeURIComponent(token)}`;
+  const linkTo = (href: string) => href;
   const runbooks = await listRunbooks(workspace.id);
 
   return (

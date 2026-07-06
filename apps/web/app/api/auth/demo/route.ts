@@ -10,7 +10,12 @@ export const dynamic = 'force-dynamic';
  * id here is the pre-seeded demo tenant (71 incidents, 13 runbooks, 12
  * months of activity across slack/grafana/sentry/github).
  */
-const DEMO_WORKSPACE_ID = '77aa1d7d-a3ae-4dc5-bb92-e07abe81a5f5';
+/**
+ * Dedicated demo tenant, not tied to any real Slack/Discord install.
+ * Judges get a full pre-seeded workspace with 71 incidents + 13 runbooks
+ * spanning 12 months, and can never accidentally access a real user's data.
+ */
+const DEMO_WORKSPACE_ID = 'de11de11-de11-4de1-8de1-de11de11de11';
 
 export async function GET(req: Request) {
   const url = new URL(req.url);

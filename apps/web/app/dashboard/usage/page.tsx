@@ -228,36 +228,14 @@ function groupByDay(events: UsageEventRow[]): DayBucket[] {
 }
 
 function StackedBarChart({ data }: { data: DayBucket[] }) {
-  const maxTotal = Math.max(...data.map((d) => d.total), 1);
-  const bars = data.slice(-14); // last 14 days
-  const barW = 100 / bars.length;
-
+  const bars = data.slice(-14);
   return (
     <div>
-      <svg viewBox="0 0 100 40" className="w-full h-40" preserveAspectRatio="none">
-        {bars.map((b, i) => {
-          let yOffset = 40;
-          const rects: React.ReactNode[] = [];
-          for (const role of Object.keys(b.byRole)) {
-            const count = b.byRole[role] ?? 0;
-            const h = (count / maxTotal) * 38;
-            const color = ROLE_COLORS[role] ?? '#a1a1aa';
-            yOffset -= h;
-            rects.push(
-              <rect
-                key={`${i}-${role}`}
-                x={i * barW + 0.5}
-                y={yOffset}
-                width={barW - 1}
-                height={h}
-                fill={color}
-                opacity={0.85}
-              />
-            );
-          }
-          return rects;
-        })}
-      </svg>
+      <div className="flex items-end gap-1 h-40 pt-4">
+        {bars.map((b, i) => (
+          <ChartBar key={i} bucket={b} maxTotal={Math.max(...bars.map((x) => x.total), 1)} />
+        ))}
+      </div>
       <div className="mt-3 flex items-center justify-between text-[10px] text-neutral-600">
         <span>{bars[0]?.date}</span>
         <span>{bars[bars.length - 1]?.date}</span>
@@ -269,6 +247,37 @@ function StackedBarChart({ data }: { data: DayBucket[] }) {
             {role}
           </span>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function ChartBar({ bucket, maxTotal }: { bucket: DayBucket; maxTotal: number }) {
+  const heightPct = (bucket.total / maxTotal) * 100;
+  const roles = Object.entries(bucket.byRole);
+  return (
+    <div className="group relative flex-1 flex flex-col justify-end h-full" title={`${bucket.date} · ${bucket.total} calls`}>
+      <div className="w-full rounded-t-sm overflow-hidden flex flex-col-reverse hover:opacity-100 opacity-90 transition-opacity" style={{ height: `${heightPct}%` }}>
+        {roles.map(([role, count]) => {
+          const h = (count / bucket.total) * 100;
+          const color = ROLE_COLORS[role] ?? '#a1a1aa';
+          return <div key={role} style={{ height: `${h}%`, background: color }} />;
+        })}
+      </div>
+      <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 whitespace-nowrap">
+        <div className="rounded-md border border-neutral-800 bg-neutral-950 shadow-lg p-2 text-[10px] text-neutral-300 min-w-[140px]">
+          <div className="text-neutral-500 mb-1">{bucket.date}</div>
+          <div className="text-neutral-100 font-semibold mb-1.5">{bucket.total} call{bucket.total === 1 ? '' : 's'}</div>
+          {roles
+            .sort((a, b) => b[1] - a[1])
+            .map(([role, count]) => (
+              <div key={role} className="flex items-center gap-2 text-[10px]">
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: ROLE_COLORS[role] ?? '#a1a1aa' }} />
+                <span className="text-neutral-400 capitalize flex-1">{role}</span>
+                <span className="text-neutral-200 tabular-nums">{count}</span>
+              </div>
+            ))}
+        </div>
       </div>
     </div>
   );
