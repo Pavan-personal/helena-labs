@@ -238,14 +238,11 @@ export function IntegrationShowcase() {
         </button>
       </div>
 
-      {/* Two-column stage. Left: constellation. Right: story panel. */}
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)] gap-8 lg:gap-14 items-center">
+      {/* Two-column stage. Left: constellation. Right: story panel.
+          On narrow screens they stack, constellation first. */}
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)] gap-10 lg:gap-14 items-center">
         <div className="flex justify-center">
-          <Constellation
-            phase={phase}
-            isLit={isLit}
-            isReturned={isReturned}
-          />
+          <Constellation phase={phase} isLit={isLit} isReturned={isReturned} />
         </div>
 
         <StoryPanel
@@ -271,23 +268,32 @@ function Constellation({
   isReturned: (s: SourceKey) => boolean;
 }) {
   // 4 source positions on a circle, evenly spaced.
+  // Positions on a circle inset by ~14% so the node discs and their label
+  // captions have room without clipping the container edges.
   const NODES: Array<{
     key: SourceKey;
     label: string;
     icon: React.ReactNode;
     top: string;
     left: string;
+    labelBelow: boolean;
   }> = [
-    { key: 'chat', label: 'Chat', icon: <ChatIcon />, top: '0%', left: '50%' },
-    { key: 'sentry', label: 'Sentry', icon: <SiSentry size={18} color="#c9a6ff" />, top: '50%', left: '100%' },
-    { key: 'github', label: 'GitHub', icon: <SiGithub size={18} color="#e6e6e6" />, top: '100%', left: '50%' },
-    { key: 'grafana', label: 'Grafana', icon: <SiGrafana size={18} color="#f5a623" />, top: '50%', left: '0%' }
+    { key: 'chat', label: 'Slack', icon: <ChatIcon />, top: '14%', left: '50%', labelBelow: false },
+    { key: 'sentry', label: 'Sentry', icon: <SiSentry size={18} color="#c9a6ff" />, top: '50%', left: '86%', labelBelow: true },
+    { key: 'github', label: 'GitHub', icon: <SiGithub size={18} color="#e6e6e6" />, top: '86%', left: '50%', labelBelow: true },
+    { key: 'grafana', label: 'Grafana', icon: <SiGrafana size={18} color="#f5a623" />, top: '50%', left: '14%', labelBelow: true }
   ];
 
   const showGlow = phase === 'synth' || phase === 'answer';
 
   return (
-    <div className="relative w-[420px] h-[420px] max-w-full">
+    <div
+      className="relative mx-auto"
+      style={{
+        width: 'min(440px, 90vw)',
+        height: 'min(440px, 90vw)'
+      }}
+    >
       {/* Radial glow at center */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
         <div
@@ -297,9 +303,10 @@ function Constellation({
         />
       </div>
 
-      {/* Concentric ring for visual anchor */}
+      {/* Concentric ring for visual anchor. Sized so the source nodes sit
+          just outside the ring instead of clipping through it. */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-        <div className="h-[280px] w-[280px] rounded-full border border-dashed border-neutral-900" />
+        <div className="h-[240px] w-[240px] rounded-full border border-dashed border-neutral-900" />
       </div>
 
       {/* Connection lines drawn as SVG so we can animate stroke */}
@@ -310,10 +317,10 @@ function Constellation({
       >
         {(
           [
-            ['chat', 50, 12, 50, 50],
-            ['sentry', 88, 50, 50, 50],
-            ['github', 50, 88, 50, 50],
-            ['grafana', 12, 50, 50, 50]
+            ['chat', 50, 14, 50, 50],
+            ['sentry', 86, 50, 50, 50],
+            ['github', 50, 86, 50, 50],
+            ['grafana', 14, 50, 50, 50]
           ] as Array<[SourceKey, number, number, number, number]>
         ).map(([key, x1, y1, x2, y2]) => {
           const lit = isLit(key);
@@ -351,7 +358,13 @@ function Constellation({
               transform: 'translate(-50%, -50%)'
             }}
           >
-            <SourceNode label={n.label} icon={n.icon} lit={lit} returned={returned} />
+            <SourceNode
+              label={n.label}
+              icon={n.icon}
+              lit={lit}
+              returned={returned}
+              labelAbove={n.key === 'chat'}
+            />
           </div>
         );
       })}
@@ -376,17 +389,29 @@ function SourceNode({
   label,
   icon,
   lit,
-  returned
+  returned,
+  labelAbove
 }: {
   label: string;
   icon: React.ReactNode;
   lit: boolean;
   returned: boolean;
+  labelAbove?: boolean;
 }) {
+  const labelEl = (
+    <div
+      className={`text-[10px] font-medium uppercase tracking-widest whitespace-nowrap transition-colors ${
+        returned ? 'text-sky-300' : lit ? 'text-neutral-200' : 'text-neutral-500'
+      }`}
+    >
+      {label}
+    </div>
+  );
   return (
     <div className="flex flex-col items-center">
+      {labelAbove && <div className="mb-2">{labelEl}</div>}
       <div
-        className={`h-[54px] w-[54px] rounded-full border flex items-center justify-center bg-neutral-950 transition-all duration-500 ${
+        className={`h-[52px] w-[52px] rounded-full border flex items-center justify-center bg-neutral-950 transition-all duration-500 ${
           returned
             ? 'border-sky-800 shadow-[0_0_24px_-6px_rgba(56,189,248,0.55)]'
             : lit
@@ -396,24 +421,13 @@ function SourceNode({
       >
         {icon}
       </div>
-      <div
-        className={`mt-2 text-[10px] font-medium uppercase tracking-widest transition-colors ${
-          returned ? 'text-sky-300' : lit ? 'text-neutral-200' : 'text-neutral-500'
-        }`}
-      >
-        {label}
-      </div>
+      {!labelAbove && <div className="mt-2">{labelEl}</div>}
     </div>
   );
 }
 
 function ChatIcon() {
-  return (
-    <div className="flex items-center gap-1">
-      <SlackMark />
-      <SiDiscord size={12} color="#c6ccff" />
-    </div>
-  );
+  return <SlackMark size={18} />;
 }
 
 /* STORY PANEL */
