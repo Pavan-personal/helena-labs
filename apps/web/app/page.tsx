@@ -17,6 +17,7 @@ import { SiDiscord, SiGithub, SiGrafana, SiSentry } from '@icons-pack/react-simp
 import { getWorkspaceFromSession, encodeSessionToken } from '@/lib/session';
 import { LandingSessionCheck } from '@/app/components/session-sync';
 import { AnimatedTrace } from '@/app/components/animated-trace';
+import { IntegrationShowcase } from '@/app/components/integration-showcase';
 
 export const dynamic = 'force-dynamic';
 
@@ -198,6 +199,17 @@ export default async function Home({
               body="Type /askoncall in your channel, or open the Copilot. Every answer cites the specific past incidents it drew from."
             />
           </div>
+        </section>
+
+        {/* IN THE FLOW — animated integration showcase */}
+        <section id="in-flow" className="max-w-6xl mx-auto px-6 pt-24 pb-8">
+          <SectionEyebrow>See it in the flow</SectionEyebrow>
+          <SectionHead>helena works where your team already does.</SectionHead>
+          <p className="text-sm text-neutral-500 max-w-2xl mt-2 mb-8">
+            One tab for each place we plug in. Watch what happens the moment a message,
+            alert, or PR lands.
+          </p>
+          <IntegrationShowcase />
         </section>
 
         {/* INTEGRATIONS */}
