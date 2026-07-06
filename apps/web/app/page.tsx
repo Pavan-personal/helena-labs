@@ -201,13 +201,13 @@ export default async function Home({
           </div>
         </section>
 
-        {/* IN THE FLOW — animated integration showcase */}
-        <section id="in-flow" className="max-w-6xl mx-auto px-6 pt-24 pb-8">
+        {/* IN THE FLOW — constellation visualization */}
+        <section id="in-flow" className="max-w-6xl mx-auto px-6 pt-32 pb-16">
           <SectionEyebrow>See it in the flow</SectionEyebrow>
-          <SectionHead>helena works where your team already does.</SectionHead>
-          <p className="text-sm text-neutral-500 max-w-2xl mt-2 mb-8">
-            One tab for each place we plug in. Watch what happens the moment a message,
-            alert, or PR lands.
+          <SectionHead>Ask once. helena reasons across every source.</SectionHead>
+          <p className="text-sm text-neutral-500 max-w-2xl mt-3 mb-12">
+            Pick a question. Watch which sources helena decides to query and how the answer
+            comes together.
           </p>
           <IntegrationShowcase />
         </section>
