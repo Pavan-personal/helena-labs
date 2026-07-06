@@ -1,23 +1,49 @@
-import { RetainDB } from '@retaindb/sdk';
+import { RetainDBClient } from '@retaindb/sdk';
 
 /**
- * RetainDB client wired through the official SDK. Uses the SDK's own request
- * layer which sends the x-sdk-version / x-sdk-runtime headers that
- * Cloudflare's WAF allowlists — raw fetch with just Authorization gets
- * challenged from Vercel egress, the SDK does not.
+ * RetainDB client. We drive the SDK's low-level RuntimeClient directly for
+ * two reasons:
+ *   1. Its request layer sends the x-sdk-version / x-sdk-runtime headers
+ *      the RetainDB Cloudflare WAF uses as an allowlist signal — plain
+ *      fetch from Vercel egress gets a "Just a moment..." challenge.
+ *   2. Bypasses the high-level withIdentity() flow which throws
+ *      AUTH_IDENTITY_REQUIRED in production unless you wire an identity
+ *      resolver. We already scope by workspaceId via the `project` field.
  *
  * Every function swallows errors and returns null so callers can fall
- * back to Postgres full-text search if RetainDB is unreachable.
+ * back to Postgres full-text search.
  */
 
-let cached: RetainDB | null = null;
+let cached: RetainDBClient | null = null;
 
-function getClient(): RetainDB | null {
+function getClient(): RetainDBClient | null {
   const apiKey = process.env.RETAINDB_API_KEY;
   if (!apiKey) return null;
   if (cached) return cached;
-  cached = new RetainDB({ apiKey });
+  cached = new RetainDBClient({ apiKey, environment: 'local' });
   return cached;
+}
+
+function getRuntime(): {
+  request: (opts: {
+    endpoint: string;
+    method: string;
+    operation?: string;
+    body?: unknown;
+    idempotent?: boolean;
+  }) => Promise<{ data: unknown }>;
+} | null {
+  const client = getClient();
+  if (!client) return null;
+  return (client as unknown as { runtimeClient: {
+    request: (opts: {
+      endpoint: string;
+      method: string;
+      operation?: string;
+      body?: unknown;
+      idempotent?: boolean;
+    }) => Promise<{ data: unknown }>;
+  } }).runtimeClient;
 }
 
 export type RetainMemoryType = 'fact' | 'decision' | 'preference' | 'event';
@@ -59,13 +85,11 @@ interface RawMemory {
   type?: string;
   temporal?: { event_date?: string | null };
 }
-
 interface RawSearchHit {
   memory: RawMemory;
   similarity?: number;
   score_parts?: Partial<RetainSearchHit['scoreParts']>;
 }
-
 interface RawSearchResponse {
   count?: number;
   results?: RawSearchHit[];
@@ -73,30 +97,23 @@ interface RawSearchResponse {
   retrieval_plan?: Record<string, unknown>;
 }
 
-/**
- * Store a memory. Fire-and-forget; do NOT await this in a hot path if you
- * cannot tolerate the extra round trip.
- */
 export async function retainRemember(
   workspaceId: string,
   content: string,
   memoryType: RetainMemoryType = 'fact'
 ): Promise<string | null> {
-  const client = getClient();
-  if (!client) return null;
+  const rt = getRuntime();
+  if (!rt) return null;
   const trimmed = content.trim();
   if (!trimmed) return null;
   try {
-    // Two SDK versions are floating around with slightly different signatures.
-    // The REST payload is stable so we just call .request() directly, which
-    // still routes through the SDK's authenticated fetch layer.
-    const resp = (await (client as unknown as {
-      request: (path: string, opts: { method: string; body: string }) => Promise<unknown>;
-    }).request('/v1/memory', {
+    const resp = await rt.request({
+      endpoint: '/v1/memory',
       method: 'POST',
-      body: JSON.stringify({ project: workspaceId, content: trimmed, memory_type: memoryType })
-    })) as { memory_id?: string };
-    return resp?.memory_id ?? null;
+      operation: 'writeAck',
+      body: { project: workspaceId, content: trimmed, memory_type: memoryType }
+    });
+    return (resp.data as { memory_id?: string })?.memory_id ?? null;
   } catch (e) {
     console.error('[retaindb] remember failed:', e instanceof Error ? e.message : e);
     return null;
@@ -108,29 +125,31 @@ export async function retainSearch(
   query: string,
   topK = 8
 ): Promise<RetainSearchOutcome> {
-  const client = getClient();
-  if (!client) {
+  const rt = getRuntime();
+  if (!rt) {
     return { result: null, failure: 'no_key', detail: 'RETAINDB_API_KEY not set', elapsedMs: 0 };
   }
   const start = Date.now();
   try {
-    const resp = (await (client as unknown as {
-      request: (path: string, opts: { method: string; body: string }) => Promise<unknown>;
-    }).request('/v1/memory/search', {
+    const resp = await rt.request({
+      endpoint: '/v1/memory/search',
       method: 'POST',
-      body: JSON.stringify({
+      operation: 'search',
+      idempotent: true,
+      body: {
         project: workspaceId,
         query,
         top_k: topK,
         include_pending: true,
         scopes: ['PROJECT']
-      })
-    })) as RawSearchResponse;
+      }
+    });
+    const raw = resp.data as RawSearchResponse;
     const elapsedMs = Date.now() - start;
-    const rows = resp.results ?? [];
+    const rows = raw.results ?? [];
     return {
       result: {
-        count: resp.count ?? 0,
+        count: raw.count ?? 0,
         hits: rows.map((row) => ({
           id: row.memory?.id ?? '',
           content: row.memory?.content ?? '',
@@ -145,8 +164,8 @@ export async function retainSearch(
             confidence: row.score_parts?.confidence ?? 0
           }
         })),
-        latencyMs: resp.latency_ms ?? elapsedMs,
-        retrievers: resp.retrieval_plan ? Object.keys(resp.retrieval_plan) : []
+        latencyMs: raw.latency_ms ?? elapsedMs,
+        retrievers: raw.retrieval_plan ? Object.keys(raw.retrieval_plan) : []
       },
       failure: null,
       detail: null,

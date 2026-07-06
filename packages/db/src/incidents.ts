@@ -43,13 +43,21 @@ async function rememberIncidentInRetain(workspaceId: string, row: IncidentRow): 
   // x-sdk-version / x-sdk-runtime headers and lets the request through.
   // Raw fetch from Vercel egress gets a "Just a moment..." challenge.
   try {
-    const { RetainDB } = await import('@retaindb/sdk');
-    const client = new RetainDB({ apiKey: key });
-    await (client as unknown as {
-      request: (path: string, opts: { method: string; body: string }) => Promise<unknown>;
-    }).request('/v1/memory', {
+    const { RetainDBClient } = await import('@retaindb/sdk');
+    const client = new RetainDBClient({ apiKey: key, environment: 'local' });
+    const runtime = (client as unknown as { runtimeClient: {
+      request: (opts: {
+        endpoint: string;
+        method: string;
+        operation?: string;
+        body?: unknown;
+      }) => Promise<{ data: unknown }>;
+    } }).runtimeClient;
+    await runtime.request({
+      endpoint: '/v1/memory',
       method: 'POST',
-      body: JSON.stringify({ project: workspaceId, content, memory_type: 'fact' })
+      operation: 'writeAck',
+      body: { project: workspaceId, content, memory_type: 'fact' }
     });
   } catch (e) {
     console.error('retaindb ingest remember failed:', e instanceof Error ? e.message : e);
