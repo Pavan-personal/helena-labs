@@ -106,7 +106,12 @@ export async function retainSearch(
   const resp = (await post('/v1/memory/search', {
     project: workspaceId,
     query,
-    top_k: topK
+    top_k: topK,
+    // Include memories whose semantic embedding is still being built async.
+    // RetainDB otherwise hides them from search which makes freshly-ingested
+    // incidents disappear for a few minutes.
+    include_pending: true,
+    scopes: ['PROJECT']
   })) as
     | {
         count: number;
