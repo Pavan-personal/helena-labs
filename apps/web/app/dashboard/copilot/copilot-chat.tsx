@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import ReactMarkdown from 'react-markdown';
 import {
   Send,
   Sparkles,
@@ -283,6 +284,7 @@ export function CopilotChat({
           <TurnBlock
             key={t.turnId}
             turn={t}
+            token={token}
             onFollowUp={(prompt) => sendMessage(prompt)}
           />
         ))}
@@ -426,10 +428,12 @@ function EmptyState({ onSuggest }: { onSuggest: (text: string) => void }) {
 
 function TurnBlock({
   turn,
-  onFollowUp
+  onFollowUp,
+  token
 }: {
   turn: TurnRecord;
   onFollowUp: (prompt: string) => void;
+  token: string;
 }) {
   return (
     <div className="space-y-4">
@@ -439,7 +443,7 @@ function TurnBlock({
           <TraceRow key={i} event={e} settled={!turn.running} />
         ))}
       </div>
-      {turn.assistant && <AssistantBubble msg={turn.assistant} onFollowUp={onFollowUp} />}
+      {turn.assistant && <AssistantBubble msg={turn.assistant} onFollowUp={onFollowUp} token={token} />}
       {turn.running && !turn.assistant && (
         <div className="text-xs text-neutral-500 flex items-center gap-2">
           <Loader2 className="h-3 w-3 animate-spin" /> working...
@@ -534,10 +538,12 @@ function ToolIcon({ name }: { name: string }) {
 
 function AssistantBubble({
   msg,
-  onFollowUp
+  onFollowUp,
+  token
 }: {
   msg: AssistantRow;
   onFollowUp: (prompt: string) => void;
+  token: string;
 }) {
   const hasCitations = msg.citations && msg.citations.length > 0;
   return (
@@ -553,8 +559,8 @@ function AssistantBubble({
           <span className="text-amber-400 ml-auto">unverified citations</span>
         )}
       </div>
-      <div className="text-sm text-neutral-200 leading-relaxed whitespace-pre-wrap">
-        {renderMarkdownWithCitations(msg.markdown)}
+      <div className="text-sm text-neutral-200 leading-relaxed">
+        <ChatMarkdown text={msg.markdown} token={token} />
       </div>
       {hasCitations && (
         <div className="mt-4 pt-3 border-t border-neutral-900 flex flex-wrap gap-2">
@@ -596,30 +602,73 @@ function AssistantBubble({
   );
 }
 
-function renderMarkdownWithCitations(text: string): React.ReactNode[] {
-  const parts: React.ReactNode[] = [];
-  const re = /\[(INC|RB)-([a-f0-9]{6,})\]/gi;
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-  let key = 0;
-  while ((match = re.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push(text.slice(lastIndex, match.index));
-    }
-    const kind = match[1] ?? '';
-    const id = match[2] ?? '';
-    parts.push(
-      <span
-        key={`c-${key++}`}
-        className="inline-flex items-center px-1.5 py-0.5 mx-0.5 rounded text-[10px] font-mono bg-sky-950/60 text-sky-300 border border-sky-900/60"
-      >
-        {kind.toUpperCase()}-{id.slice(0, 6)}
-      </span>
-    );
-    lastIndex = match.index + match[0].length;
-  }
-  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
-  return parts;
+/**
+ * Turn "[INC-abcdef]" and "[RB-abcdef]" into real markdown links first so
+ * react-markdown renders them as clickable <a>, then style the <a> as pills.
+ */
+function preprocessCitationsToLinks(text: string, token: string): string {
+  return text.replace(/\[(INC|RB)-([a-f0-9]{6,})\]/gi, (_, kind, id) => {
+    const route = String(kind).toUpperCase() === 'INC' ? 'incidents' : 'runbooks';
+    const url = `/dashboard/${route}/${id}?hs=${encodeURIComponent(token)}`;
+    return `[${String(kind).toUpperCase()}-${id.slice(0, 6)}](${url})`;
+  });
+}
+
+function ChatMarkdown({ text, token }: { text: string; token: string }) {
+  const withLinks = preprocessCitationsToLinks(text, token);
+  return (
+    <ReactMarkdown
+      components={{
+        p: ({ children }) => (
+          <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>
+        ),
+        strong: ({ children }) => (
+          <strong className="font-semibold text-white">{children}</strong>
+        ),
+        em: ({ children }) => <em className="italic text-neutral-200">{children}</em>,
+        ul: ({ children }) => (
+          <ul className="list-disc pl-5 mb-2 space-y-1 marker:text-neutral-600">{children}</ul>
+        ),
+        ol: ({ children }) => (
+          <ol className="list-decimal pl-5 mb-2 space-y-1 marker:text-neutral-600">{children}</ol>
+        ),
+        li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+        code: ({ children }) => (
+          <code className="px-1.5 py-0.5 rounded bg-neutral-900 border border-neutral-800 text-[12px] text-neutral-200 font-mono">
+            {children}
+          </code>
+        ),
+        pre: ({ children }) => (
+          <pre className="my-2 rounded-lg bg-black/40 border border-neutral-800 p-3 overflow-x-auto text-[12px] font-mono">
+            {children}
+          </pre>
+        ),
+        a: ({ href, children }) => {
+          const isCitation = typeof href === 'string' && /\/dashboard\/(incidents|runbooks)\//.test(href);
+          if (isCitation) {
+            return (
+              <Link
+                href={href!}
+                className="inline-flex items-center px-1.5 py-0.5 mx-0.5 rounded text-[10px] font-mono bg-sky-950/60 text-sky-300 border border-sky-900/60 hover:bg-sky-900/50 no-underline"
+              >
+                {children}
+              </Link>
+            );
+          }
+          return (
+            <a href={href} className="text-sky-300 hover:text-sky-200 underline underline-offset-2">
+              {children}
+            </a>
+          );
+        },
+        h1: ({ children }) => <h3 className="text-white font-semibold text-base mt-2 mb-1">{children}</h3>,
+        h2: ({ children }) => <h3 className="text-white font-semibold text-sm mt-2 mb-1">{children}</h3>,
+        h3: ({ children }) => <h4 className="text-neutral-100 font-semibold text-sm mt-2 mb-1">{children}</h4>
+      }}
+    >
+      {withLinks}
+    </ReactMarkdown>
+  );
 }
 
 function humanizeStatus(kind: string, settled: boolean): string {

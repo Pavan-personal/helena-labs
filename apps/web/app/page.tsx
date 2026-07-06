@@ -31,8 +31,12 @@ export default async function Home({
 }) {
   const params = await searchParams;
   const workspace = await getWorkspaceFromSession();
-  const demoToken = encodeSessionToken(DEMO_WORKSPACE_ID);
-  const demoHref = `/dashboard?hs=${encodeURIComponent(demoToken)}`;
+  // Demo login: server sets an httpOnly cookie, then redirects. The token
+  // never appears in the URL. Real production flows use the same cookie.
+  const demoHref = `/api/auth/demo`;
+  // Kept in case we ever want to link into a specific subpath.
+  const _demoToken = encodeSessionToken(DEMO_WORKSPACE_ID);
+  void _demoToken;
 
   return (
     <main className="relative min-h-screen bg-neutral-950 overflow-hidden">
@@ -113,32 +117,42 @@ export default async function Home({
                   </Link>
                 </div>
               ) : (
-                <div>
-                  <div className="flex flex-wrap gap-3">
+                <div className="space-y-6">
+                  {/* Primary: instant demo */}
+                  <div>
                     <Link
                       href={demoHref}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-white text-neutral-900 font-medium hover:bg-neutral-100 shadow-[0_1px_0_rgba(255,255,255,0.15)_inset]"
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-white text-neutral-900 font-medium hover:bg-neutral-100 shadow-[0_1px_0_rgba(255,255,255,0.15)_inset]"
                     >
                       <Sparkles className="h-4 w-4" strokeWidth={2} />
                       Try the live demo
                     </Link>
-                    <a
-                      href="/api/auth/slack/install"
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-neutral-800 hover:border-neutral-600 text-neutral-200"
-                    >
-                      <SlackMark />
-                      Add to Slack
-                    </a>
-                    <a
-                      href="/api/auth/discord/install"
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-neutral-800 hover:border-neutral-600 text-neutral-200"
-                    >
-                      <SiDiscord size={18} color="#c6ccff" />
-                      Add to Discord
-                    </a>
+                    <div className="mt-2 text-xs text-neutral-500">
+                      No install. Lands in a workspace with 71 real incidents indexed.
+                    </div>
                   </div>
-                  <div className="mt-4 text-xs text-neutral-500">
-                    Demo needs no install. Slack &amp; Discord install is one click.
+
+                  {/* Or install on your team's chat */}
+                  <div className="pt-5 border-t border-neutral-900">
+                    <div className="text-[11px] uppercase tracking-widest text-neutral-500 mb-3">
+                      Or install on your team&rsquo;s chat
+                    </div>
+                    <div className="flex flex-wrap gap-3">
+                      <a
+                        href="/api/auth/slack/install"
+                        className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-lg border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-900/50 text-neutral-200 text-sm"
+                      >
+                        <SlackMark />
+                        Add to Slack
+                      </a>
+                      <a
+                        href="/api/auth/discord/install"
+                        className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-lg border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-900/50 text-neutral-200 text-sm"
+                      >
+                        <SiDiscord size={16} color="#c6ccff" />
+                        Add to Discord
+                      </a>
+                    </div>
                   </div>
                 </div>
               )}
