@@ -255,22 +255,12 @@ function summarizeResult(name: string, result: unknown): { text: string; count?:
     const retrieval = obj.retrieval as
       | { source?: string; latency_ms?: number; retain_hits?: number; retain?: string; retain_first_content_prefix?: string }
       | undefined;
-    let via = '';
-    if (retrieval?.source === 'retaindb') {
-      via = ` via RetainDB (${retrieval.latency_ms}ms)`;
-    } else if (retrieval?.source === 'postgres_fts') {
-      const r = retrieval as unknown as {
-        retain_hits?: number;
-        retain_first_content_prefix?: string;
-        retain_failure?: string;
-        retain_detail?: string;
-        retain_elapsed_ms?: number;
-      };
-      const hint = r.retain_failure
-        ? ` [retain: ${r.retain_failure}${r.retain_detail ? ` (${r.retain_detail})` : ''}, ${r.retain_elapsed_ms}ms]`
-        : ` [retain: ${r.retain_hits ?? 0} hits, prefix="${r.retain_first_content_prefix ?? ''}"]`;
-      via = ` via Postgres FTS${hint}`;
-    }
+    const via =
+      retrieval?.source === 'retaindb'
+        ? ` via RetainDB (${retrieval.latency_ms}ms)`
+        : retrieval?.source === 'postgres_fts'
+          ? ' via Postgres FTS'
+          : '';
     return { text: `${count} incident${count === 1 ? '' : 's'}${via}`, count };
   }
   if (name === 'get_incident') {
