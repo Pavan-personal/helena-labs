@@ -1,34 +1,27 @@
-import { RetainDBClient } from '@retaindb/sdk';
+import { RetainDB } from '@retaindb/sdk';
 
 /**
- * RetainDB high-level client with identity wired.
+ * RetainDB client — following the sanctioned pattern from the Next.js
+ * integration guide:
  *
- * Prior attempts (raw fetch, then RuntimeClient) got past the Cloudflare
- * WAF but the API itself returned 403 Forbidden from Vercel egress. Trying
- * the RetainDBClient's public memory API with identityMode='app-identity'
- * and a getIdentity() resolver — some routes on the RetainDB backend
- * appear to require user_id/session_id present in the request body when
- * the client environment is 'production'.
+ *   const db = new RetainDB({ apiKey, project });
+ *   const { context, results } = await db.getContext(query, { userId });
+ *   await db.remember(content, { userId });
  *
- * We scope the identity by workspaceId so the "user" is really the tenant.
- * Fallback path (Postgres FTS) still kicks in on any error.
+ * Treats each helena workspace as both `project` and `userId`. Docs use
+ * `userId` for end-user scoping; we don't have end-users per workspace,
+ * so we reuse the workspaceId which keeps the same isolation guarantee.
+ *
+ * All errors return null so the caller can fall back to Postgres FTS.
  */
 
-let cached: RetainDBClient | null = null;
+let cached: RetainDB | null = null;
 
-function getClient(workspaceId: string): RetainDBClient | null {
+function getDb(): RetainDB | null {
   const apiKey = process.env.RETAINDB_API_KEY;
   if (!apiKey) return null;
   if (cached) return cached;
-  cached = new RetainDBClient({
-    apiKey,
-    environment: 'production',
-    identityMode: 'app-identity',
-    getIdentity: async () => ({
-      userId: workspaceId,
-      sessionId: 'helena-copilot'
-    })
-  } as ConstructorParameters<typeof RetainDBClient>[0]);
+  cached = new RetainDB({ apiKey });
   return cached;
 }
 
@@ -65,25 +58,30 @@ export interface RetainSearchOutcome {
   elapsedMs: number;
 }
 
+interface RawContextResult {
+  content: string;
+  score?: number;
+  type?: string;
+  metadata?: Record<string, unknown>;
+}
+
 export async function retainRemember(
   workspaceId: string,
   content: string,
-  memoryType: RetainMemoryType = 'fact'
+  _memoryType: RetainMemoryType = 'fact'
 ): Promise<string | null> {
-  const client = getClient(workspaceId);
-  if (!client) return null;
+  const db = getDb();
+  if (!db) return null;
   const trimmed = content.trim();
   if (!trimmed) return null;
   try {
-    const res = (await client.memory.add({
-      project: workspaceId,
-      user_id: workspaceId,
-      content: trimmed,
-      memory_type: memoryType
-    } as unknown as Parameters<typeof client.memory.add>[0])) as {
-      memory_id?: string;
-    };
-    return res?.memory_id ?? null;
+    const res = (await (db as unknown as {
+      remember: (
+        c: string,
+        opts: { project?: string; userId?: string }
+      ) => Promise<{ memoryId?: string; success?: boolean }>;
+    }).remember(trimmed, { project: workspaceId, userId: workspaceId }));
+    return res?.memoryId ?? null;
   } catch (e) {
     console.error('[retaindb] remember failed:', e instanceof Error ? e.message : e);
     return null;
@@ -95,55 +93,40 @@ export async function retainSearch(
   query: string,
   topK = 8
 ): Promise<RetainSearchOutcome> {
-  const client = getClient(workspaceId);
-  if (!client) {
+  const db = getDb();
+  if (!db) {
     return { result: null, failure: 'no_key', detail: 'RETAINDB_API_KEY not set', elapsedMs: 0 };
   }
   const start = Date.now();
   try {
-    const raw = (await client.memory.search({
-      project: workspaceId,
-      user_id: workspaceId,
-      query,
-      top_k: topK,
-      include_pending: true,
-      profile: 'fast'
-    } as unknown as Parameters<typeof client.memory.search>[0])) as {
-      count?: number;
-      results?: Array<{
-        memory: {
-          id: string;
-          content: string;
-          type?: string;
-          temporal?: { event_date?: string | null };
-        };
-        similarity?: number;
-        score_parts?: Partial<RetainSearchHit['scoreParts']>;
-      }>;
-      latency_ms?: number;
-      retrieval_plan?: Record<string, unknown>;
-    };
+    // TS types on RetainDB don't expose getContext but runtime does.
+    const raw = (await (db as unknown as {
+      getContext: (
+        q: string,
+        opts: { project?: string; userId?: string; limit?: number }
+      ) => Promise<{ results?: RawContextResult[]; count?: number }>;
+    }).getContext(query, { project: workspaceId, userId: workspaceId, limit: topK }));
     const elapsedMs = Date.now() - start;
     const rows = raw.results ?? [];
     return {
       result: {
-        count: raw.count ?? 0,
-        hits: rows.map((row) => ({
-          id: row.memory?.id ?? '',
-          content: row.memory?.content ?? '',
-          memoryType: row.memory?.type ?? '',
-          similarity: row.similarity ?? 0,
-          eventDate: row.memory?.temporal?.event_date ?? null,
+        count: raw.count ?? rows.length,
+        hits: rows.map((row, i) => ({
+          id: `mem_${i}`,
+          content: row.content ?? '',
+          memoryType: row.type ?? 'fact',
+          similarity: row.score ?? 0,
+          eventDate: null,
           scoreParts: {
-            lexical: row.score_parts?.lexical ?? 0,
-            semantic: row.score_parts?.semantic ?? 0,
-            recency: row.score_parts?.recency ?? 0,
-            temporal: row.score_parts?.temporal ?? 0,
-            confidence: row.score_parts?.confidence ?? 0
+            lexical: 0,
+            semantic: row.score ?? 0,
+            recency: 0,
+            temporal: 0,
+            confidence: 0
           }
         })),
-        latencyMs: raw.latency_ms ?? elapsedMs,
-        retrievers: raw.retrieval_plan ? Object.keys(raw.retrieval_plan) : []
+        latencyMs: elapsedMs,
+        retrievers: []
       },
       failure: null,
       detail: null,
@@ -152,7 +135,7 @@ export async function retainSearch(
   } catch (e) {
     const elapsedMs = Date.now() - start;
     const msg = e instanceof Error ? e.message : String(e);
-    console.error(`[retaindb] search failed after ${elapsedMs}ms:`, msg);
+    console.error(`[retaindb] getContext failed after ${elapsedMs}ms:`, msg);
     return { result: null, failure: 'sdk_error', detail: msg.slice(0, 200), elapsedMs };
   }
 }
