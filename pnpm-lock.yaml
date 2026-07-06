@@ -29,6 +29,9 @@ importers:
       '@icons-pack/react-simple-icons':
         specifier: ^13.13.0
         version: 13.13.0(react@19.2.7)
+      '@retaindb/sdk':
+        specifier: ^5.1.1
+        version: 5.1.1
       '@slack/web-api':
         specifier: 7.7.0
         version: 7.7.0
@@ -100,6 +103,9 @@ importers:
       '@helena/shared':
         specifier: workspace:*
         version: link:../shared
+      '@retaindb/sdk':
+        specifier: ^5.1.1
+        version: 5.1.1
       '@supabase/supabase-js':
         specifier: 2.45.4
         version: 2.45.4
@@ -345,6 +351,10 @@ packages:
   '@nodelib/fs.walk@1.2.8':
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
+
+  '@retaindb/sdk@5.1.1':
+    resolution: {integrity: sha512-aqCp+fDoEEt6MPtHFbckaiLV8OZLJa6gMQMfcWZyz7DndWCyqrIVkdTt4vLyOWUc0wShCKZtt/1Hl1Z/pdTy1A==}
+    engines: {node: '>=18.0.0'}
 
   '@slack/logger@4.0.1':
     resolution: {integrity: sha512-6cmdPrV/RYfd2U0mDGiMK8S7OJqpCTm7enMLRR3edccsPX8j7zXTLnaEF4fhxxJJTAIOil6+qZrnUPTuaLvwrQ==}
@@ -1437,6 +1447,8 @@ snapshots:
     dependencies:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.20.1
+
+  '@retaindb/sdk@5.1.1': {}
 
   '@slack/logger@4.0.1':
     dependencies:

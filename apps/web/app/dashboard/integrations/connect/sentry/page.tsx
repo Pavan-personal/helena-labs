@@ -1,4 +1,6 @@
 import { requireWorkspace, encodeSessionToken } from '@/lib/session';
+import { isDemoWorkspace } from '@/lib/demo';
+import { DemoBlockNotice } from '@/app/components/demo-block';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,6 +11,14 @@ export default async function ConnectSentryPage({
 }) {
   const params = await searchParams;
   const workspace = await requireWorkspace(params.hs);
+  if (isDemoWorkspace(workspace.id)) {
+    return (
+      <DemoBlockNotice
+        title="Sentry connect is disabled here"
+        detail="Pasting a Sentry Internal Integration token here would share it with every demo visitor. Install helena on your own Slack or Discord workspace to connect Sentry against your own org."
+      />
+    );
+  }
   const token = encodeSessionToken(workspace.id);
   const alreadyConnected = Boolean(workspace.sentry_org_slug && workspace.sentry_token);
 

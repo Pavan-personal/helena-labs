@@ -16,7 +16,8 @@ import {
   upsertTurn,
   finalizeTurn,
   listMessages,
-  countInflightTurns
+  countInflightTurns,
+  linkAttachmentsToMessage
 } from '@/lib/copilot/db';
 
 const MAX_INFLIGHT_TURNS_PER_WORKSPACE = 5;
@@ -114,8 +115,10 @@ export async function POST(req: Request) {
     }
   }
 
-  // Persist user message
-  await insertMessage({
+  const attachmentIds = body.attachmentIds ?? [];
+
+  // Persist user message and link attachments so reload can show them.
+  const userMsg = await insertMessage({
     threadId,
     workspaceId: workspace.id,
     turnId,
@@ -123,11 +126,12 @@ export async function POST(req: Request) {
     content: userText,
     pinnedRefIds: body.pinnedRefIds ?? []
   });
+  if (attachmentIds.length > 0) {
+    await linkAttachmentsToMessage(userMsg.id, attachmentIds);
+  }
 
   const sse = createSseStream();
   const abortSignal = req.signal;
-
-  const attachmentIds = body.attachmentIds ?? [];
 
   // Start the actual work in a background task so we can return the stream immediately.
   (async () => {

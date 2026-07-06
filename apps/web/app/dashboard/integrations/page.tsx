@@ -1,7 +1,8 @@
 import Link from 'next/link';
-import { Webhook, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Webhook, ArrowRight, CheckCircle2, Lock } from 'lucide-react';
 import { SiDiscord, SiGrafana, SiSentry, SiGithub } from '@icons-pack/react-simple-icons';
 import { requireWorkspace, encodeSessionToken } from '@/lib/session';
+import { isDemoWorkspace } from '@/lib/demo';
 import { CopyRow } from './copy-row';
 
 export const dynamic = 'force-dynamic';
@@ -25,6 +26,7 @@ export default async function IntegrationsPage({
   const discordInteractionsUrl = `${origin}/api/discord/interactions`;
 
   const isDiscord = workspace.chat_platform === 'discord';
+  const isDemo = isDemoWorkspace(workspace.id);
   const githubConnected = Boolean(workspace.github_installation_id);
   const grafanaConnected = Boolean(workspace.grafana_url && workspace.grafana_token);
   const sentryConnected = Boolean(workspace.sentry_org_slug && workspace.sentry_token);
@@ -42,6 +44,23 @@ export default async function IntegrationsPage({
         </p>
       </div>
 
+      {isDemo && (
+        <div className="border border-neutral-800 bg-neutral-950/40 rounded-xl p-4 mb-6 flex items-start gap-3">
+          <div className="h-8 w-8 rounded-lg border border-neutral-800 bg-neutral-900/60 flex items-center justify-center shrink-0">
+            <Lock className="h-4 w-4 text-neutral-400" strokeWidth={1.75} />
+          </div>
+          <div className="text-sm text-neutral-400 leading-relaxed">
+            <div className="text-neutral-200 font-medium mb-0.5">You&rsquo;re in the demo workspace.</div>
+            Integration connects are disabled here so visitors can&rsquo;t share tokens with each
+            other. Install helena on your own <Link href="/" className="text-neutral-100 underline underline-offset-2">Slack or Discord</Link> to wire real integrations.
+          </div>
+        </div>
+      )}
+      {params.err === 'demo_blocked' && (
+        <div className="border border-yellow-950/60 bg-yellow-950/20 text-yellow-300 rounded-lg p-3 mb-6 text-sm">
+          That action is disabled in the demo workspace. Install helena to wire it against your own data.
+        </div>
+      )}
       {params.connected && (
         <div className="border border-emerald-950 bg-emerald-950/20 text-emerald-300 rounded-lg p-3 mb-6 text-sm flex items-center gap-2">
           <CheckCircle2 className="h-4 w-4 shrink-0" />

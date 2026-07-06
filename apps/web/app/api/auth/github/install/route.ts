@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { randomBytes } from 'node:crypto';
 import { loadEnv } from '@helena/shared';
 import { encodeSessionToken, getWorkspaceFromSession } from '@/lib/session';
+import { isDemoWorkspace } from '@/lib/demo';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -26,6 +27,11 @@ export async function GET(req: Request) {
   }
 
   const workspace = await getWorkspaceFromSession(hs);
+  if (workspace && isDemoWorkspace(workspace.id)) {
+    return NextResponse.redirect(
+      new URL('/dashboard/integrations?err=demo_blocked', url.origin)
+    );
+  }
   if (!workspace) {
     return NextResponse.redirect(new URL('/?install_error=no_session', url.origin));
   }

@@ -808,6 +808,7 @@ interface HydratedMessage {
   citations: unknown;
   citations_valid: boolean | null;
   latency_ms: number | null;
+  attachments?: Array<{ id: string; url: string; mime: string; name: string }>;
 }
 
 function rebuildTurns(messages: HydratedMessage[]): TurnRecord[] {
@@ -825,7 +826,12 @@ function rebuildTurns(messages: HydratedMessage[]): TurnRecord[] {
       };
       byTurn.set(m.turn_id, rec);
     }
-    if (m.role === 'user') rec.userText = m.content ?? '';
+    if (m.role === 'user') {
+      rec.userText = m.content ?? '';
+      if (m.attachments && m.attachments.length > 0) {
+        rec.attachmentPreviews = m.attachments.map((a) => a.url);
+      }
+    }
     else if (m.role === 'assistant') {
       rec.assistant = {
         markdown: m.content ?? '',

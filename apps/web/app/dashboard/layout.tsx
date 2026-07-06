@@ -61,13 +61,13 @@ export default async function DashboardLayout({ children }: { children: ReactNod
             <Link href={withToken('/dashboard')} className="flex items-center gap-2 mb-4">
               <Image
                 src="/logo.png"
-                alt="helena"
+                alt="Helena Labs"
                 width={36}
                 height={36}
                 className="h-9 w-9 object-contain"
                 priority
               />
-              <span className="text-lg font-semibold tracking-tight text-white">helena</span>
+              <span className="text-lg font-semibold tracking-tight text-white">Helena Labs</span>
             </Link>
             <div className="flex items-center gap-2.5 p-2.5 rounded-lg border border-neutral-800 bg-neutral-900/60">
               <div

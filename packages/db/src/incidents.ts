@@ -39,21 +39,20 @@ async function rememberIncidentInRetain(workspaceId: string, row: IncidentRow): 
   const key = process.env.RETAINDB_API_KEY;
   if (!key) return;
   const content = `[INC:${row.id}] ${row.title}\nSeverity: ${row.severity}. Source: ${row.source}.${row.channel ? ` Channel: #${row.channel}.` : ''}\n${(row.body ?? '').slice(0, 2000)}`;
-  const ctrl = new AbortController();
-  const timeout = setTimeout(() => ctrl.abort(), 4000);
+  // Use the official SDK so the RetainDB Cloudflare WAF sees the
+  // x-sdk-version / x-sdk-runtime headers and lets the request through.
+  // Raw fetch from Vercel egress gets a "Just a moment..." challenge.
   try {
-    await fetch('https://api.retaindb.com/v1/memory', {
+    const { RetainDB } = await import('@retaindb/sdk');
+    const client = new RetainDB({ apiKey: key });
+    await (client as unknown as {
+      request: (path: string, opts: { method: string; body: string }) => Promise<unknown>;
+    }).request('/v1/memory', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        project: workspaceId,
-        content,
-        memory_type: 'fact'
-      }),
-      signal: ctrl.signal
+      body: JSON.stringify({ project: workspaceId, content, memory_type: 'fact' })
     });
-  } finally {
-    clearTimeout(timeout);
+  } catch (e) {
+    console.error('retaindb ingest remember failed:', e instanceof Error ? e.message : e);
   }
 }
 

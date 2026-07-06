@@ -14,6 +14,7 @@
     "@helena/db": "workspace:*",
     "@helena/shared": "workspace:*",
     "@icons-pack/react-simple-icons": "^13.13.0",
+    "@retaindb/sdk": "^5.1.1",
     "@slack/web-api": "7.7.0",
     "lucide-react": "^1.23.0",
     "next": "16.2.10",

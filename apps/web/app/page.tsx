@@ -18,10 +18,9 @@ import { getWorkspaceFromSession, encodeSessionToken } from '@/lib/session';
 import { LandingSessionCheck } from '@/app/components/session-sync';
 import { AnimatedTrace } from '@/app/components/animated-trace';
 import { IntegrationShowcase } from '@/app/components/integration-showcase';
+import { DEMO_WORKSPACE_ID } from '@/lib/demo';
 
 export const dynamic = 'force-dynamic';
-
-const DEMO_WORKSPACE_ID = 'de11de11-de11-4de1-8de1-de11de11de11';
 
 export default async function Home({
   searchParams
@@ -60,8 +59,8 @@ export default async function Home({
         {/* NAV */}
         <nav className="max-w-6xl mx-auto flex items-center justify-between px-6 py-5">
           <div className="flex items-center gap-2">
-            <Image src="/logo.png" alt="helena" width={26} height={26} priority />
-            <span className="text-[15px] font-semibold tracking-tight text-white">helena</span>
+            <Image src="/logo.png" alt="Helena Labs" width={26} height={26} priority />
+            <span className="text-[15px] font-semibold tracking-tight text-white">Helena Labs</span>
           </div>
           <Link
             href={demoHref}

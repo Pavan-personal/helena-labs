@@ -175,6 +175,65 @@ export async function upsertTurn(input: {
 }
 
 /**
+ * Link a set of copilot_attachments rows to a specific message row so the
+ * Copilot can hydrate their previews on reload. No-op if either side is
+ * missing.
+ */
+export async function linkAttachmentsToMessage(
+  messageId: number,
+  attachmentIds: string[]
+): Promise<void> {
+  if (!messageId || attachmentIds.length === 0) return;
+  const db = getServerClient();
+  try {
+    await db
+      .from('copilot_attachments')
+      .update({ message_id: messageId })
+      .in('id', attachmentIds);
+  } catch (e) {
+    console.error('linkAttachmentsToMessage failed:', e);
+  }
+}
+
+/**
+ * Given a set of message ids, return their attachments keyed by message id.
+ * Signed storage URLs are generated per row so the client can render them
+ * directly without another round-trip.
+ */
+export async function attachmentsForMessages(
+  messageIds: number[]
+): Promise<Map<number, Array<{ id: string; url: string; mime: string; name: string }>>> {
+  const out = new Map<number, Array<{ id: string; url: string; mime: string; name: string }>>();
+  if (messageIds.length === 0) return out;
+  const db = getServerClient();
+  const { data } = await db
+    .from('copilot_attachments')
+    .select('id, message_id, storage_path, mime_type')
+    .in('message_id', messageIds);
+  const rows = (data ?? []) as Array<{
+    id: string;
+    message_id: number;
+    storage_path: string;
+    mime_type: string;
+  }>;
+  for (const r of rows) {
+    const { data: signed } = await db.storage
+      .from('copilot-uploads')
+      .createSignedUrl(r.storage_path, 60 * 60);
+    if (!signed?.signedUrl) continue;
+    const list = out.get(r.message_id) ?? [];
+    list.push({
+      id: r.id,
+      url: signed.signedUrl,
+      mime: r.mime_type,
+      name: r.storage_path.split('/').pop() ?? r.id
+    });
+    out.set(r.message_id, list);
+  }
+  return out;
+}
+
+/**
  * Cost DoS defense: count still-running turns for a workspace. Callers reject
  * if it exceeds the cap. Fails open (returns 0) if the count query errors, so
  * a Supabase blip never wedges legitimate traffic.

@@ -1,4 +1,6 @@
 import { requireWorkspace, encodeSessionToken } from '@/lib/session';
+import { isDemoWorkspace } from '@/lib/demo';
+import { DemoBlockNotice } from '@/app/components/demo-block';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,6 +11,14 @@ export default async function ConnectGrafanaPage({
 }) {
   const params = await searchParams;
   const workspace = await requireWorkspace(params.hs);
+  if (isDemoWorkspace(workspace.id)) {
+    return (
+      <DemoBlockNotice
+        title="Grafana connect is disabled here"
+        detail="Wiring a service account token would let every demo visitor share the same Grafana Cloud instance. Install helena on your own Slack or Discord workspace to connect Grafana against your own data."
+      />
+    );
+  }
   const token = encodeSessionToken(workspace.id);
   const alreadyConnected = Boolean(workspace.grafana_url && workspace.grafana_token);
 
