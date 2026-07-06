@@ -16,7 +16,7 @@
  */
 
 const BASE = 'https://api.retaindb.com';
-const TIMEOUT_MS = 4000;
+const TIMEOUT_MS = 8000;
 
 function getKey(): string | null {
   return process.env.RETAINDB_API_KEY ?? null;
@@ -24,9 +24,13 @@ function getKey(): string | null {
 
 async function post(path: string, body: unknown): Promise<unknown | null> {
   const key = getKey();
-  if (!key) return null;
+  if (!key) {
+    console.error(`[retaindb] no api key set — path=${path}`);
+    return null;
+  }
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+  const start = Date.now();
   try {
     const res = await fetch(BASE + path, {
       method: 'POST',
@@ -37,13 +41,18 @@ async function post(path: string, body: unknown): Promise<unknown | null> {
       body: JSON.stringify(body),
       signal: ctrl.signal
     });
+    const elapsed = Date.now() - start;
     if (!res.ok) {
-      console.error(`retaindb ${path} → ${res.status}`);
+      const errBody = await res.text().catch(() => '');
+      console.error(`[retaindb] ${path} → ${res.status} in ${elapsed}ms — ${errBody.slice(0, 200)}`);
       return null;
     }
-    return await res.json();
+    const json = await res.json();
+    console.log(`[retaindb] ${path} → 200 in ${elapsed}ms, count=${(json as { count?: number }).count}`);
+    return json;
   } catch (e) {
-    console.error(`retaindb ${path} threw:`, e);
+    const elapsed = Date.now() - start;
+    console.error(`[retaindb] ${path} threw after ${elapsed}ms:`, e instanceof Error ? e.message : e);
     return null;
   } finally {
     clearTimeout(t);
