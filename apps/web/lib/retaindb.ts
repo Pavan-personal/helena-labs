@@ -22,11 +22,21 @@ function getKey(): string | null {
   return process.env.RETAINDB_API_KEY ?? null;
 }
 
-async function post(path: string, body: unknown): Promise<unknown | null> {
+// Explicit failure reason so we can debug from the SSE stream, not just logs.
+export type RetainFailure = 'no_key' | 'http_error' | 'network_error' | 'timeout';
+export interface RetainPostResult {
+  ok: boolean;
+  data: unknown;
+  failure: RetainFailure | null;
+  detail: string | null;
+  statusCode: number | null;
+  elapsedMs: number;
+}
+
+async function post(path: string, body: unknown): Promise<RetainPostResult> {
   const key = getKey();
   if (!key) {
-    console.error(`[retaindb] no api key set — path=${path}`);
-    return null;
+    return { ok: false, data: null, failure: 'no_key', detail: 'RETAINDB_API_KEY not set', statusCode: null, elapsedMs: 0 };
   }
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
@@ -41,19 +51,21 @@ async function post(path: string, body: unknown): Promise<unknown | null> {
       body: JSON.stringify(body),
       signal: ctrl.signal
     });
-    const elapsed = Date.now() - start;
+    const elapsedMs = Date.now() - start;
     if (!res.ok) {
       const errBody = await res.text().catch(() => '');
-      console.error(`[retaindb] ${path} → ${res.status} in ${elapsed}ms — ${errBody.slice(0, 200)}`);
-      return null;
+      console.error(`[retaindb] ${path} → ${res.status} in ${elapsedMs}ms — ${errBody.slice(0, 200)}`);
+      return { ok: false, data: null, failure: 'http_error', detail: errBody.slice(0, 120), statusCode: res.status, elapsedMs };
     }
     const json = await res.json();
-    console.log(`[retaindb] ${path} → 200 in ${elapsed}ms, count=${(json as { count?: number }).count}`);
-    return json;
+    console.log(`[retaindb] ${path} → 200 in ${elapsedMs}ms, count=${(json as { count?: number }).count}`);
+    return { ok: true, data: json, failure: null, detail: null, statusCode: 200, elapsedMs };
   } catch (e) {
-    const elapsed = Date.now() - start;
-    console.error(`[retaindb] ${path} threw after ${elapsed}ms:`, e instanceof Error ? e.message : e);
-    return null;
+    const elapsedMs = Date.now() - start;
+    const msg = e instanceof Error ? e.message : String(e);
+    const failure: RetainFailure = msg.toLowerCase().includes('abort') ? 'timeout' : 'network_error';
+    console.error(`[retaindb] ${path} ${failure} after ${elapsedMs}ms:`, msg);
+    return { ok: false, data: null, failure, detail: msg.slice(0, 120), statusCode: null, elapsedMs };
   } finally {
     clearTimeout(t);
   }
@@ -95,77 +107,84 @@ export async function retainRemember(
 ): Promise<string | null> {
   const trimmed = content.trim();
   if (!trimmed) return null;
-  const resp = (await post('/v1/memory', {
+  const r = await post('/v1/memory', {
     project: workspaceId,
     content: trimmed,
     memory_type: memoryType
-  })) as { memory_id?: string; success?: boolean } | null;
-  return resp?.memory_id ?? null;
+  });
+  if (!r.ok) return null;
+  return (r.data as { memory_id?: string })?.memory_id ?? null;
 }
 
 /**
  * Hybrid retrieval. Returns null if RetainDB is unreachable or the request
  * errors; caller should then fall back to whatever local search they had.
  */
+export interface RetainSearchOutcome {
+  result: RetainSearchResult | null;
+  failure: RetainFailure | null;
+  detail: string | null;
+  elapsedMs: number;
+}
+
 export async function retainSearch(
   workspaceId: string,
   query: string,
   topK = 8
-): Promise<RetainSearchResult | null> {
-  const resp = (await post('/v1/memory/search', {
+): Promise<RetainSearchOutcome> {
+  const r = await post('/v1/memory/search', {
     project: workspaceId,
     query,
     top_k: topK,
-    // Include memories whose semantic embedding is still being built async.
-    // RetainDB otherwise hides them from search which makes freshly-ingested
-    // incidents disappear for a few minutes.
     include_pending: true,
     scopes: ['PROJECT']
-  })) as
-    | {
-        count: number;
-        results: Array<{
-          memory: {
-            id: string;
-            content: string;
-            type: string;
-            temporal: { event_date: string | null };
-          };
-          similarity: number;
-          score_parts: {
-            lexical: number;
-            semantic: number;
-            recency: number;
-            temporal: number;
-            confidence: number;
-          };
-        }>;
-        latency_ms: number;
-        retrieval_plan?: unknown;
-      }
-    | null;
-  if (!resp) return null;
-  const planner = (resp as unknown as {
+  });
+  if (!r.ok) {
+    return { result: null, failure: r.failure, detail: r.detail, elapsedMs: r.elapsedMs };
+  }
+  const resp = r.data as {
+    count: number;
+    results: Array<{
+      memory: {
+        id: string;
+        content: string;
+        type: string;
+        temporal: { event_date: string | null };
+      };
+      similarity: number;
+      score_parts: {
+        lexical: number;
+        semantic: number;
+        recency: number;
+        temporal: number;
+        confidence: number;
+      };
+    }>;
+    latency_ms: number;
     retrieval_plan?: unknown;
-    latency_breakdown?: Record<string, number>;
-  }).retrieval_plan;
+  };
   return {
-    count: resp.count,
-    hits: resp.results.map((r) => ({
-      id: r.memory.id,
-      content: r.memory.content,
-      memoryType: r.memory.type,
-      similarity: r.similarity,
-      eventDate: r.memory.temporal?.event_date ?? null,
-      scoreParts: {
-        lexical: r.score_parts.lexical ?? 0,
-        semantic: r.score_parts.semantic ?? 0,
-        recency: r.score_parts.recency ?? 0,
-        temporal: r.score_parts.temporal ?? 0,
-        confidence: r.score_parts.confidence ?? 0
-      }
-    })),
-    latencyMs: resp.latency_ms,
-    retrievers: planner ? Object.keys(planner) : []
+    result: {
+      count: resp.count,
+      hits: resp.results.map((row) => ({
+        id: row.memory.id,
+        content: row.memory.content,
+        memoryType: row.memory.type,
+        similarity: row.similarity,
+        eventDate: row.memory.temporal?.event_date ?? null,
+        scoreParts: {
+          lexical: row.score_parts.lexical ?? 0,
+          semantic: row.score_parts.semantic ?? 0,
+          recency: row.score_parts.recency ?? 0,
+          temporal: row.score_parts.temporal ?? 0,
+          confidence: row.score_parts.confidence ?? 0
+        }
+      })),
+      latencyMs: resp.latency_ms,
+      retrievers: resp.retrieval_plan ? Object.keys(resp.retrieval_plan) : []
+    },
+    failure: null,
+    detail: null,
+    elapsedMs: r.elapsedMs
   };
 }

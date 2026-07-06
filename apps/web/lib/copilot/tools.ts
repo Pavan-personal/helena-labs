@@ -148,9 +148,9 @@ async function toolSearchIncidents(ctx: ToolContext, args: Record<string, unknow
   if (!query) return { error: 'query is required' };
 
   // Try RetainDB hybrid retrieval first. On miss or error, fall back to
-  // Postgres tsvector. RetainDB has a 4s internal timeout so worst case is
-  // 4s slower per query when it's down.
-  const retain = await retainSearch(ctx.workspaceId, query, limit);
+  // Postgres tsvector.
+  const outcome = await retainSearch(ctx.workspaceId, query, limit);
+  const retain = outcome.result;
 
   if (retain && retain.hits.length > 0) {
     // Turn hits back into incident IDs, then hydrate from Postgres so the
@@ -197,8 +197,8 @@ async function toolSearchIncidents(ctx: ToolContext, args: Record<string, unknow
   const filtered =
     severity === 'any' ? rows : rows.filter((r) => r.severity === severity);
 
-  // Diagnostic — never fatal. Keeps whichever RetainDB signal we saw visible
-  // in tool_result so we can see why the fallback fired.
+  // Diagnostic — never fatal. Explicit failure reason so we can see WHY the
+  // fallback fired from just the SSE stream (no server-log access needed).
   const retainDebug = retain
     ? {
         source: 'postgres_fts',
@@ -206,7 +206,12 @@ async function toolSearchIncidents(ctx: ToolContext, args: Record<string, unknow
         retain_first_content_prefix: retain.hits[0]?.content?.slice(0, 32) ?? null,
         retain_latency_ms: retain.latencyMs
       }
-    : { source: 'postgres_fts', retain: 'null (env, timeout, or network)' };
+    : {
+        source: 'postgres_fts',
+        retain_failure: outcome.failure,
+        retain_detail: outcome.detail,
+        retain_elapsed_ms: outcome.elapsedMs
+      };
 
   return {
     count: filtered.length,
