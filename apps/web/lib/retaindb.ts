@@ -17,11 +17,13 @@ import { RetainDB } from '@retaindb/sdk';
 
 let cached: RetainDB | null = null;
 
-function getDb(): RetainDB | null {
+function getDb(workspaceId: string): RetainDB | null {
   const apiKey = process.env.RETAINDB_API_KEY;
   if (!apiKey) return null;
   if (cached) return cached;
-  cached = new RetainDB({ apiKey });
+  // Project is baked into the client per the sanctioned pattern. We use
+  // the workspaceId so multi-tenant isolation is preserved.
+  cached = new RetainDB({ apiKey, project: workspaceId } as ConstructorParameters<typeof RetainDB>[0]);
   return cached;
 }
 
@@ -70,18 +72,16 @@ export async function retainRemember(
   content: string,
   _memoryType: RetainMemoryType = 'fact'
 ): Promise<string | null> {
-  const db = getDb();
+  const db = getDb(workspaceId);
   if (!db) return null;
   const trimmed = content.trim();
   if (!trimmed) return null;
   try {
-    const res = (await (db as unknown as {
-      remember: (
-        c: string,
-        opts: { project?: string; userId?: string }
-      ) => Promise<{ memoryId?: string; success?: boolean }>;
-    }).remember(trimmed, { project: workspaceId, userId: workspaceId }));
-    return res?.memoryId ?? null;
+    const user = (db as unknown as {
+      user: (uid: string) => { remember: (c: string) => Promise<unknown> };
+    }).user(workspaceId);
+    await user.remember(trimmed);
+    return 'ok';
   } catch (e) {
     console.error('[retaindb] remember failed:', e instanceof Error ? e.message : e);
     return null;
@@ -91,38 +91,52 @@ export async function retainRemember(
 export async function retainSearch(
   workspaceId: string,
   query: string,
-  topK = 8
+  _topK = 8
 ): Promise<RetainSearchOutcome> {
-  const db = getDb();
+  const db = getDb(workspaceId);
   if (!db) {
     return { result: null, failure: 'no_key', detail: 'RETAINDB_API_KEY not set', elapsedMs: 0 };
   }
   const start = Date.now();
   try {
-    // TS types on RetainDB don't expose getContext but runtime does.
-    const raw = (await (db as unknown as {
-      getContext: (
-        q: string,
-        opts: { project?: string; userId?: string; limit?: number }
-      ) => Promise<{ results?: RawContextResult[]; count?: number }>;
-    }).getContext(query, { project: workspaceId, userId: workspaceId, limit: topK }));
+    const user = (db as unknown as {
+      user: (uid: string) => {
+        getContext: (q: string) => Promise<{
+          context?: string;
+          raw?: {
+            count?: number;
+            results?: Array<{
+              memory?: {
+                id?: string;
+                content?: string;
+                type?: string;
+                temporal?: { event_date?: string | null };
+              };
+              similarity?: number;
+              score_parts?: Partial<RetainSearchHit['scoreParts']>;
+            }>;
+          };
+        }>;
+      };
+    }).user(workspaceId);
+    const { raw } = await user.getContext(query);
     const elapsedMs = Date.now() - start;
-    const rows = raw.results ?? [];
+    const rows = raw?.results ?? [];
     return {
       result: {
-        count: raw.count ?? rows.length,
-        hits: rows.map((row, i) => ({
-          id: `mem_${i}`,
-          content: row.content ?? '',
-          memoryType: row.type ?? 'fact',
-          similarity: row.score ?? 0,
-          eventDate: null,
+        count: raw?.count ?? rows.length,
+        hits: rows.map((row) => ({
+          id: row.memory?.id ?? '',
+          content: row.memory?.content ?? '',
+          memoryType: row.memory?.type ?? 'fact',
+          similarity: row.similarity ?? 0,
+          eventDate: row.memory?.temporal?.event_date ?? null,
           scoreParts: {
-            lexical: 0,
-            semantic: row.score ?? 0,
-            recency: 0,
-            temporal: 0,
-            confidence: 0
+            lexical: row.score_parts?.lexical ?? 0,
+            semantic: row.score_parts?.semantic ?? 0,
+            recency: row.score_parts?.recency ?? 0,
+            temporal: row.score_parts?.temporal ?? 0,
+            confidence: row.score_parts?.confidence ?? 0
           }
         })),
         latencyMs: elapsedMs,
