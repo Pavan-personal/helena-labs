@@ -1,21 +1,21 @@
 'use client';
 
 import { useEffect } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 
 const STORAGE_KEY = 'helena_session_token';
 const QUERY_NAME = 'hs';
 
 /**
- * Runs on every dashboard page. If the URL has ?hs=, mirror it into
- * localStorage so other tabs and future sessions can recover.
- * If the URL does not have ?hs= but localStorage does, redirect once
- * to add the param so the middleware lets the request through.
+ * Runs on every dashboard page. Only responsibility now: if a URL still
+ * carries ?hs= (external link, OAuth callback, third-party embed), mirror
+ * it into localStorage for cross-tab continuity. We NEVER rewrite the URL
+ * back — the httpOnly cookie already handles auth on every request, so
+ * putting ?hs= into the address bar just leaked the session token for no
+ * reason.
  */
 export function SessionSync() {
   const searchParams = useSearchParams();
-  const router = useRouter();
-  const pathname = usePathname();
 
   useEffect(() => {
     const urlToken = searchParams.get(QUERY_NAME);
@@ -25,51 +25,17 @@ export function SessionSync() {
       } catch {
         // storage disabled, nothing to do
       }
-      return;
     }
-
-    let stored: string | null = null;
-    try {
-      stored = localStorage.getItem(STORAGE_KEY);
-    } catch {
-      stored = null;
-    }
-
-    if (stored) {
-      const params = new URLSearchParams(searchParams.toString());
-      params.set(QUERY_NAME, stored);
-      router.replace(`${pathname}?${params.toString()}`);
-    }
-  }, [searchParams, pathname, router]);
+  }, [searchParams]);
 
   return null;
 }
 
 /**
- * Runs on the landing page. If the user has a stored session, bounce them
- * to /dashboard with the token appended so they never see the marketing page
- * when they already have an install.
+ * Kept only so existing imports don't break. No-op now — the landing page
+ * checks the cookie server-side and never depends on client-side redirects.
  */
 export function LandingSessionCheck() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  useEffect(() => {
-    if (searchParams.get('signed_out') === '1') return;
-    if (searchParams.get('install_error')) return;
-
-    let stored: string | null = null;
-    try {
-      stored = localStorage.getItem(STORAGE_KEY);
-    } catch {
-      stored = null;
-    }
-
-    if (stored) {
-      router.replace(`/dashboard?${QUERY_NAME}=${encodeURIComponent(stored)}`);
-    }
-  }, [router, searchParams]);
-
   return null;
 }
 

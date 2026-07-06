@@ -30,18 +30,28 @@ export default async function RunbookDetailPage({
 
   const db = getServerClient();
   const isFullUuid = /^[0-9a-f-]{36}$/i.test(id);
-  let query = db
-    .from('runbooks')
-    .select('*')
-    .eq('workspace_id', workspace.id)
-    .limit(1);
+  let runbook: Runbook | null = null;
   if (isFullUuid) {
-    query = query.eq('id', id);
+    const { data } = await db
+      .from('runbooks')
+      .select('*')
+      .eq('workspace_id', workspace.id)
+      .eq('id', id)
+      .maybeSingle();
+    runbook = (data as Runbook | null) ?? null;
   } else {
-    query = query.like('id', `${id.toLowerCase()}%`);
+    // Supabase `.like` on a UUID column requires ::text cast, which the
+    // client can't emit. Fetch workspace-scoped rows and prefix-filter
+    // in JS. Cheap because runbook counts are small.
+    const { data } = await db
+      .from('runbooks')
+      .select('*')
+      .eq('workspace_id', workspace.id)
+      .limit(200);
+    const rows = (data as Runbook[]) ?? [];
+    const prefix = id.toLowerCase();
+    runbook = rows.find((r) => r.id.toLowerCase().startsWith(prefix)) ?? null;
   }
-  const { data } = await query.maybeSingle();
-  const runbook = data as Runbook | null;
   if (!runbook) notFound();
 
   return (

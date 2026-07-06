@@ -38,22 +38,29 @@ export default async function IncidentDetailPage({
   const linkTo = (href: string) => href;
 
   const db = getServerClient();
-  let query = db
-    .from('incidents')
-    .select('*')
-    .eq('workspace_id', workspace.id)
-    .limit(1);
-
-  // Support both full UUID and 8-char prefix
   const isFullUuid = /^[0-9a-f-]{36}$/i.test(id);
+  let incident: IncidentRow | null = null;
   if (isFullUuid) {
-    query = query.eq('id', id);
+    const { data } = await db
+      .from('incidents')
+      .select('*')
+      .eq('workspace_id', workspace.id)
+      .eq('id', id)
+      .maybeSingle();
+    incident = (data as IncidentRow | null) ?? null;
   } else {
-    query = query.like('id', `${id.toLowerCase()}%`);
+    // Supabase `.like` on a UUID column needs ::text cast that the client
+    // can't emit. Scan recent workspace-scoped rows and prefix-match in JS.
+    const { data } = await db
+      .from('incidents')
+      .select('*')
+      .eq('workspace_id', workspace.id)
+      .order('created_at', { ascending: false })
+      .limit(500);
+    const rows = (data as IncidentRow[]) ?? [];
+    const prefix = id.toLowerCase();
+    incident = rows.find((r) => r.id.toLowerCase().startsWith(prefix)) ?? null;
   }
-
-  const { data } = await query.maybeSingle();
-  const incident = data as IncidentRow | null;
   if (!incident) notFound();
 
   const extracted = incident.extracted_json as Record<string, unknown> | null;

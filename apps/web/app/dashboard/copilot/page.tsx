@@ -37,7 +37,7 @@ export default async function CopilotPage({
         <aside className="border border-neutral-800 rounded-xl bg-neutral-950/40 overflow-y-auto scrollbar-none">
           <div className="p-3 border-b border-neutral-900 sticky top-0 bg-neutral-950/60 backdrop-blur">
             <Link
-              href={`/dashboard/copilot?hs=${encodeURIComponent(token)}`}
+              href="/dashboard/copilot"
               className="block px-3 py-2 rounded-lg bg-white text-neutral-900 text-sm font-medium text-center hover:bg-neutral-100"
             >
               + New chat
@@ -50,7 +50,7 @@ export default async function CopilotPage({
             {threads.map((t) => (
               <Link
                 key={t.id}
-                href={`/dashboard/copilot?hs=${encodeURIComponent(token)}&t=${t.id}`}
+                href={`/dashboard/copilot?t=${t.id}`}
                 className={`block px-3 py-2 rounded-md text-xs transition-colors ${
                   params.t === t.id
                     ? 'bg-neutral-800 text-neutral-100'

@@ -218,13 +218,21 @@ export function CopilotChat({
           return;
         }
 
-        // If we didn't have a threadId, fish it out of thread list
+        // If we didn't have a threadId, fish it out of thread list and
+        // update the URL so a reload keeps this conversation instead of
+        // silently starting a new one on the next send.
         if (!threadId) {
           try {
-            const list = await fetch(
-              `/api/copilot/threads?hs=${encodeURIComponent(token)}`
-            ).then((r) => r.json());
-            if (list.threads?.[0]?.id) setThreadId(list.threads[0].id);
+            const list = await fetch('/api/copilot/threads').then((r) => r.json());
+            const freshId = list.threads?.[0]?.id;
+            if (freshId) {
+              setThreadId(freshId);
+              try {
+                const url = new URL(window.location.href);
+                url.searchParams.set('t', freshId);
+                window.history.replaceState(null, '', url.toString());
+              } catch {}
+            }
           } catch {}
         }
 

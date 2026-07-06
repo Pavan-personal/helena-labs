@@ -247,14 +247,18 @@ async function toolGetIncident(ctx: ToolContext, args: Record<string, unknown>) 
     .maybeSingle();
 
   if (!data && idInput.length < 32) {
-    const { data: prefixMatch } = await db
+    // `.like` on UUID column requires a ::text cast Supabase JS can't emit;
+    // fall back to a workspace-scoped scan + prefix match in JS.
+    const { data: scan } = await db
       .from('incidents')
       .select('*')
       .eq('workspace_id', ctx.workspaceId)
-      .like('id', `${idInput}%`)
-      .limit(1)
-      .maybeSingle();
-    data = prefixMatch;
+      .order('created_at', { ascending: false })
+      .limit(500);
+    const rows = (scan ?? []) as Array<{ id: string }>;
+    const prefix = idInput.toLowerCase();
+    const hit = rows.find((r) => r.id.toLowerCase().startsWith(prefix));
+    data = hit ? (hit as unknown as typeof data) : null;
   }
 
   if (!data) return { error: 'incident not found', looked_up: idInput };
@@ -322,14 +326,16 @@ async function toolGetRunbook(ctx: ToolContext, args: Record<string, unknown>) {
     .eq('id', id)
     .maybeSingle();
   if (!data && id.length < 32) {
-    const { data: prefixMatch } = await db
+    // UUID column + Supabase `.like` needs ::text cast the client can't emit.
+    const { data: scan } = await db
       .from('runbooks')
       .select('*')
       .eq('workspace_id', ctx.workspaceId)
-      .like('id', `${id}%`)
-      .limit(1)
-      .maybeSingle();
-    data = prefixMatch;
+      .limit(200);
+    const rows = (scan ?? []) as Array<{ id: string }>;
+    const prefix = id.toLowerCase();
+    const hit = rows.find((r) => r.id.toLowerCase().startsWith(prefix));
+    data = hit ? (hit as unknown as typeof data) : null;
   }
   if (!data) return { error: 'runbook not found' };
   const row = data as { id: string; title: string; content_md: string; approved_by: string };
