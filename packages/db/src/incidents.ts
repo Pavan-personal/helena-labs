@@ -24,7 +24,37 @@ export async function insertIncident(
     .single();
 
   if (error || !data) throw new Error(`Insert incident failed: ${error?.message}`);
-  return data as IncidentRow;
+  const row = data as IncidentRow;
+
+  // Mirror to RetainDB so the Copilot's hybrid retrieval sees new incidents
+  // immediately. Fire-and-forget: never block ingest on the memory layer.
+  rememberIncidentInRetain(workspaceId, row).catch((e) => {
+    console.error('retaindb remember failed:', e);
+  });
+
+  return row;
+}
+
+async function rememberIncidentInRetain(workspaceId: string, row: IncidentRow): Promise<void> {
+  const key = process.env.RETAINDB_API_KEY;
+  if (!key) return;
+  const content = `[INC:${row.id}] ${row.title}\nSeverity: ${row.severity}. Source: ${row.source}.${row.channel ? ` Channel: #${row.channel}.` : ''}\n${(row.body ?? '').slice(0, 2000)}`;
+  const ctrl = new AbortController();
+  const timeout = setTimeout(() => ctrl.abort(), 4000);
+  try {
+    await fetch('https://api.retaindb.com/v1/memory', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        project: workspaceId,
+        content,
+        memory_type: 'fact'
+      }),
+      signal: ctrl.signal
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export async function findSimilarByDedup(

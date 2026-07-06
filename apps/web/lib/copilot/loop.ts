@@ -252,7 +252,14 @@ function summarizeResult(name: string, result: unknown): { text: string; count?:
   if ('error' in obj) return { text: `error: ${String(obj.error).slice(0, 120)}` };
   if (name === 'search_incidents' || name === 'list_recent_incidents') {
     const count = Number(obj.count ?? 0);
-    return { text: `${count} incident${count === 1 ? '' : 's'}`, count };
+    const retrieval = obj.retrieval as { source?: string; latency_ms?: number } | undefined;
+    const via =
+      retrieval?.source === 'retaindb'
+        ? ` via RetainDB (${retrieval.latency_ms}ms)`
+        : retrieval?.source === 'postgres_fts'
+          ? ' via Postgres FTS'
+          : '';
+    return { text: `${count} incident${count === 1 ? '' : 's'}${via}`, count };
   }
   if (name === 'get_incident') {
     return { text: `${obj.title ?? 'incident'} · ${obj.severity ?? '?'}` };

@@ -1,4 +1,5 @@
 import { getServerClient, searchIncidents, getIncidentsByIds, listIncidents } from '@helena/db';
+import { retainSearch } from '@/lib/retaindb';
 
 /**
  * Copilot tool definitions in OpenAI function-calling format.
@@ -146,12 +147,59 @@ async function toolSearchIncidents(ctx: ToolContext, args: Record<string, unknow
   const severity = String(args.severity ?? 'any');
   if (!query) return { error: 'query is required' };
 
+  // Try RetainDB hybrid retrieval first. On miss or error, fall back to
+  // Postgres tsvector. RetainDB has a 4s internal timeout so worst case is
+  // 4s slower per query when it's down.
+  const retain = await retainSearch(ctx.workspaceId, query, limit);
+
+  if (retain && retain.hits.length > 0) {
+    // Turn hits back into incident IDs, then hydrate from Postgres so the
+    // model sees the full incident schema (severity, source, channel, etc).
+    // RetainDB memory ids look like "mem_<hex>" — the incident id is stored
+    // in metadata during ingest and shows up in the content prefix "[INC:<id>]".
+    const incidentIds = retain.hits
+      .map((h) => extractIncidentId(h.content))
+      .filter((id): id is string => Boolean(id));
+
+    if (incidentIds.length > 0) {
+      const hydrated = await getIncidentsByIds(incidentIds);
+      const byId = new Map(hydrated.map((r) => [r.id, r]));
+      // Preserve RetainDB rank order
+      const ordered = incidentIds
+        .map((id) => byId.get(id))
+        .filter((r): r is (typeof hydrated)[number] => Boolean(r));
+      const filtered =
+        severity === 'any' ? ordered : ordered.filter((r) => r.severity === severity);
+      if (filtered.length > 0) {
+        return {
+          count: filtered.length,
+          retrieval: {
+            source: 'retaindb',
+            latency_ms: retain.latencyMs,
+            top_score: retain.hits[0]?.similarity ?? 0
+          },
+          incidents: filtered.slice(0, limit).map((r) => ({
+            id: r.id.slice(0, 8),
+            full_id: r.id,
+            title: r.title,
+            source: r.source,
+            severity: r.severity,
+            channel: r.channel,
+            created_at: r.created_at,
+            excerpt: (r.body ?? '').slice(0, 400)
+          }))
+        };
+      }
+    }
+  }
+
   const rows = await searchIncidents(ctx.workspaceId, query, limit);
   const filtered =
     severity === 'any' ? rows : rows.filter((r) => r.severity === severity);
 
   return {
     count: filtered.length,
+    retrieval: { source: 'postgres_fts' },
     incidents: filtered.slice(0, limit).map((r) => ({
       id: r.id.slice(0, 8),
       full_id: r.id,
@@ -163,6 +211,11 @@ async function toolSearchIncidents(ctx: ToolContext, args: Record<string, unknow
       excerpt: (r.body ?? '').slice(0, 400)
     }))
   };
+}
+
+function extractIncidentId(content: string): string | null {
+  const m = content.match(/\[INC:([a-f0-9-]{8,36})\]/i);
+  return m?.[1] ?? null;
 }
 
 async function toolGetIncident(ctx: ToolContext, args: Record<string, unknown>) {
