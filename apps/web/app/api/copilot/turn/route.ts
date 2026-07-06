@@ -133,7 +133,7 @@ export async function POST(req: Request) {
   (async () => {
     const keepaliveHandle = setInterval(() => sse.keepalive(), 5000);
     try {
-      // ---- Vision preprocessing (before classifier so we can force VISION label) ----
+      // Vision preprocessing runs before the classifier so we can force a VISION route label.
       let visionResult: import('@/lib/copilot/vision').VisionConsensus | null = null;
       if (attachmentIds.length > 0) {
         sse.write({ type: 'status', kind: 'vision_start' });
