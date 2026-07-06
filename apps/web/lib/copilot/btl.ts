@@ -18,8 +18,8 @@ export function getBtlClient(): OpenAI {
 }
 
 export const MODELS = {
-  FAST: 'deepseek-v4-flash',
-  PRO: 'deepseek-v4-pro',
+  FAST: 'btl-2',
+  PRO: 'btl-2',
   VISION_GPT: 'gpt-4o-mini',
   VISION_GEMINI: 'gemini-2.5-flash-image'
 } as const;
@@ -44,6 +44,7 @@ export const ROUTE_CONFIG: Record<
 const PRICING_PER_M_TOKENS: Record<string, { input: number; output: number }> = {
   'deepseek-v4-flash': { input: 0.07, output: 0.28 },
   'deepseek-v4-pro': { input: 0.27, output: 1.10 },
+  'btl-2': { input: 0.30, output: 1.20 },
   'gpt-4o-mini': { input: 0.15, output: 0.60 },
   'gemini-2.5-flash-image': { input: 0.075, output: 0.30 }
 };
