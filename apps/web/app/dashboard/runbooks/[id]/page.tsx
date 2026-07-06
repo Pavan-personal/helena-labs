@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import ReactMarkdown from 'react-markdown';
 import { ArrowLeft, User, Calendar, Link2 } from 'lucide-react';
 import { requireWorkspace, encodeSessionToken } from '@/lib/session';
 import { getServerClient } from '@helena/db';
@@ -93,12 +94,38 @@ export default async function RunbookDetailPage({
         </div>
       </div>
 
-      <div className="rounded-xl border border-neutral-800 bg-neutral-950/40 p-6 mb-6">
-        <article className="prose-runbook">
-          <pre className="text-sm text-neutral-200 whitespace-pre-wrap break-words leading-relaxed font-sans">
-            {runbook.content_md}
-          </pre>
-        </article>
+      <div className="rounded-xl border border-neutral-800 bg-neutral-950/40 p-6 mb-6 text-sm text-neutral-200 leading-relaxed">
+        <ReactMarkdown
+          components={{
+            h1: ({ children }) => <h2 className="text-white text-lg font-semibold mt-4 first:mt-0 mb-2">{children}</h2>,
+            h2: ({ children }) => <h3 className="text-white text-base font-semibold mt-4 first:mt-0 mb-2">{children}</h3>,
+            h3: ({ children }) => <h4 className="text-neutral-100 text-sm font-semibold mt-3 first:mt-0 mb-1.5">{children}</h4>,
+            p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
+            strong: ({ children }) => <strong className="font-semibold text-white">{children}</strong>,
+            em: ({ children }) => <em className="italic text-neutral-200">{children}</em>,
+            ul: ({ children }) => <ul className="list-disc pl-5 mb-3 space-y-1 marker:text-neutral-600">{children}</ul>,
+            ol: ({ children }) => <ol className="list-decimal pl-5 mb-3 space-y-1 marker:text-neutral-600">{children}</ol>,
+            li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+            code: ({ children }) => (
+              <code className="px-1.5 py-0.5 rounded bg-neutral-900 border border-neutral-800 text-[12px] text-neutral-200 font-mono">
+                {children}
+              </code>
+            ),
+            pre: ({ children }) => (
+              <pre className="my-3 rounded-lg bg-black/40 border border-neutral-900 p-3 overflow-x-auto text-[12px] font-mono">
+                {children}
+              </pre>
+            ),
+            hr: () => <hr className="my-4 border-neutral-900" />,
+            a: ({ href, children }) => (
+              <a href={href} className="text-sky-300 hover:text-sky-200 underline underline-offset-2">
+                {children}
+              </a>
+            )
+          }}
+        >
+          {runbook.content_md}
+        </ReactMarkdown>
       </div>
 
       {runbook.source_incident_ids && runbook.source_incident_ids.length > 0 && (

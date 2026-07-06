@@ -82,29 +82,39 @@ export function CopilotChat({
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [hydrating, setHydrating] = useState(Boolean(initialThreadId));
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Synchronous mirror of threadId so consecutive sends within the same
+  // session reuse the thread even if React hasn't re-rendered yet.
+  const threadIdRef = useRef<string | null>(initialThreadId);
 
   // Hydrate messages if we opened an existing thread
   useEffect(() => {
+    threadIdRef.current = initialThreadId;
+    setThreadId(initialThreadId);
     if (!initialThreadId) {
       setTurns([]);
+      setHydrating(false);
       return;
     }
+    setHydrating(true);
     let cancelled = false;
     (async () => {
-      const res = await fetch(
-        `/api/copilot/threads/${initialThreadId}/messages?hs=${encodeURIComponent(token)}`
-      );
-      if (!res.ok) return;
-      const { messages } = (await res.json()) as { messages: HydratedMessage[] };
-      if (cancelled) return;
-      setTurns(rebuildTurns(messages));
+      try {
+        const res = await fetch(`/api/copilot/threads/${initialThreadId}/messages`);
+        if (!res.ok) return;
+        const { messages } = (await res.json()) as { messages: HydratedMessage[] };
+        if (cancelled) return;
+        setTurns(rebuildTurns(messages));
+      } finally {
+        if (!cancelled) setHydrating(false);
+      }
     })();
     return () => {
       cancelled = true;
     };
-  }, [initialThreadId, token]);
+  }, [initialThreadId]);
 
   // Force auto-scroll to bottom on every turn/live-event change.
   // Using a "shouldAutoScroll" ref would let the user opt out by scrolling up,
@@ -183,15 +193,15 @@ export function CopilotChat({
       setAttachments([]);
 
       try {
+        const currentThreadId = threadIdRef.current;
         const res = await fetch('/api/copilot/turn', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            threadId: threadId ?? undefined,
+            threadId: currentThreadId ?? undefined,
             userText: text,
             turnId,
-            attachmentIds: currentAttachmentIds,
-            hs: token
+            attachmentIds: currentAttachmentIds
           })
         });
         if (!res.ok || !res.body) {
@@ -218,21 +228,17 @@ export function CopilotChat({
           return;
         }
 
-        // If we didn't have a threadId, fish it out of thread list and
-        // update the URL so a reload keeps this conversation instead of
-        // silently starting a new one on the next send.
-        if (!threadId) {
+        // Server echoes the thread id via X-Thread-Id so we don't need a
+        // separate list fetch. Update the ref synchronously so any second
+        // send fired before React re-renders reuses this thread.
+        const serverThreadId = res.headers.get('X-Thread-Id');
+        if (serverThreadId && serverThreadId !== threadIdRef.current) {
+          threadIdRef.current = serverThreadId;
+          setThreadId(serverThreadId);
           try {
-            const list = await fetch('/api/copilot/threads').then((r) => r.json());
-            const freshId = list.threads?.[0]?.id;
-            if (freshId) {
-              setThreadId(freshId);
-              try {
-                const url = new URL(window.location.href);
-                url.searchParams.set('t', freshId);
-                window.history.replaceState(null, '', url.toString());
-              } catch {}
-            }
+            const url = new URL(window.location.href);
+            url.searchParams.set('t', serverThreadId);
+            window.history.replaceState(null, '', url.toString());
           } catch {}
         }
 
@@ -267,7 +273,7 @@ export function CopilotChat({
         setSending(false);
       }
     },
-    [sending, threadId, token, attachments]
+    [sending, token, attachments]
   );
 
   return (
@@ -287,7 +293,22 @@ export function CopilotChat({
       }}
     >
       <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin p-6 space-y-6">
-        {turns.length === 0 && <EmptyState onSuggest={(t) => sendMessage(t)} />}
+        {hydrating && turns.length === 0 && (
+          <div className="space-y-4 animate-pulse">
+            <div className="ml-auto h-8 w-2/3 max-w-sm rounded-2xl bg-neutral-900" />
+            <div className="space-y-2">
+              <div className="h-3 w-40 bg-neutral-900 rounded" />
+              <div className="h-3 w-56 bg-neutral-900 rounded" />
+            </div>
+            <div className="rounded-xl border border-neutral-900 bg-neutral-950/60 p-4 space-y-2">
+              <div className="h-3 w-24 bg-neutral-900 rounded" />
+              <div className="h-3 w-full bg-neutral-900 rounded" />
+              <div className="h-3 w-11/12 bg-neutral-900 rounded" />
+              <div className="h-3 w-4/5 bg-neutral-900 rounded" />
+            </div>
+          </div>
+        )}
+        {!hydrating && turns.length === 0 && <EmptyState onSuggest={(t) => sendMessage(t)} />}
         {turns.map((t) => (
           <TurnBlock
             key={t.turnId}
@@ -332,7 +353,6 @@ export function CopilotChat({
             setInput('');
             sendMessage(text);
           }}
-          className="flex gap-2 items-end"
         >
           <input
             ref={fileInputRef}
@@ -345,58 +365,63 @@ export function CopilotChat({
               e.target.value = '';
             }}
           />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="shrink-0 h-10 w-10 rounded-lg border border-neutral-800 text-neutral-400 hover:text-neutral-200 hover:border-neutral-600 flex items-center justify-center"
-            title="Attach screenshot"
-          >
-            <Paperclip className="h-4 w-4" />
-          </button>
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                const text = input.trim();
-                if (!text && attachments.length === 0) return;
-                setInput('');
-                sendMessage(text);
-              }
-            }}
-            onPaste={(e) => {
-              const files: File[] = [];
-              for (const item of Array.from(e.clipboardData.items)) {
-                if (item.kind === 'file') {
-                  const file = item.getAsFile();
-                  if (file) files.push(file);
+          {/* Composer — textarea with icons inline, matches modern chat UX */}
+          <div className="relative rounded-xl bg-neutral-950 border border-neutral-800 focus-within:border-neutral-600 transition-colors">
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  const text = input.trim();
+                  if (!text && attachments.length === 0) return;
+                  setInput('');
+                  sendMessage(text);
                 }
+              }}
+              onPaste={(e) => {
+                const files: File[] = [];
+                for (const item of Array.from(e.clipboardData.items)) {
+                  if (item.kind === 'file') {
+                    const file = item.getAsFile();
+                    if (file) files.push(file);
+                  }
+                }
+                if (files.length > 0) {
+                  e.preventDefault();
+                  handleFiles(files);
+                }
+              }}
+              placeholder={
+                dragOver
+                  ? 'Drop images anywhere to attach'
+                  : 'Ask about incidents, or drop / paste a screenshot...'
               }
-              if (files.length > 0) {
-                e.preventDefault();
-                handleFiles(files);
-              }
-            }}
-            placeholder={
-              dragOver
-                ? 'Drop images anywhere to attach'
-                : 'Ask about incidents, or drop / paste a screenshot...'
-            }
-            rows={2}
-            className="flex-1 resize-none rounded-lg bg-neutral-950 border border-neutral-800 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-neutral-600 focus:outline-none"
-          />
-          <button
-            type="submit"
-            disabled={sending || (!input.trim() && attachments.length === 0)}
-            className="shrink-0 h-10 w-10 rounded-lg bg-white text-neutral-900 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed hover:bg-neutral-100"
-          >
-            {sending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </button>
+              rows={1}
+              className="w-full resize-none bg-transparent pl-12 pr-14 py-3 text-sm text-neutral-100 placeholder:text-neutral-600 focus:outline-none min-h-[46px] max-h-40"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute left-2 bottom-2 h-8 w-8 rounded-lg text-neutral-500 hover:text-neutral-200 hover:bg-neutral-900 flex items-center justify-center"
+              title="Attach screenshot"
+              aria-label="Attach screenshot"
+            >
+              <Paperclip className="h-4 w-4" strokeWidth={1.75} />
+            </button>
+            <button
+              type="submit"
+              disabled={sending || (!input.trim() && attachments.length === 0)}
+              className="absolute right-2 bottom-2 h-8 w-8 rounded-lg bg-white text-neutral-900 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-neutral-100"
+              aria-label="Send"
+            >
+              {sending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Send className="h-3.5 w-3.5" strokeWidth={2} />
+              )}
+            </button>
+          </div>
         </form>
       </div>
     </div>

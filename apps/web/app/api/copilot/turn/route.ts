@@ -362,5 +362,11 @@ export async function POST(req: Request) {
     }
   })();
 
-  return new Response(sse.stream, { headers: SSE_HEADERS });
+  return new Response(sse.stream, {
+    headers: {
+      ...SSE_HEADERS,
+      'X-Thread-Id': threadId,
+      'Access-Control-Expose-Headers': 'X-Thread-Id'
+    }
+  });
 }
