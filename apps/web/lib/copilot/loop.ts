@@ -48,7 +48,14 @@ export async function runToolLoop(input: RunLoopInput): Promise<RunLoopResult> {
   const btl = getBtlClient();
   const cfg = ROUTE_CONFIG[input.label];
   const start = Date.now();
-  const deadline = start + (input.wallClockMs ?? 45_000);
+  const wallClockMs = input.wallClockMs ?? 45_000;
+  const deadline = start + wallClockMs;
+  // Reserve time near the end of the budget for a forced final-answer
+  // pass. If we haven't produced text and the tool loop is running long,
+  // we cut off tool calls and demand a summary — better than dumping a
+  // half-answer.
+  const SYNTHESIS_RESERVE_MS = 15_000;
+  const synthesisCutoff = deadline - SYNTHESIS_RESERVE_MS;
 
   const messages: ChatMessage[] = [...input.initialMessages];
   const seenIncidentIds = new Set<string>();
@@ -60,7 +67,7 @@ export async function runToolLoop(input: RunLoopInput): Promise<RunLoopResult> {
   let tokensOut = 0;
   let consecutiveBadArgs = 0;
 
-  while (toolCallsMade < cfg.toolCallCap && Date.now() < deadline) {
+  while (toolCallsMade < cfg.toolCallCap && Date.now() < synthesisCutoff) {
     let resp: OpenAI.Chat.Completions.ChatCompletion;
     try {
       resp = await btl.chat.completions.create({
@@ -173,9 +180,43 @@ export async function runToolLoop(input: RunLoopInput): Promise<RunLoopResult> {
     break;
   }
 
+  // If we exited the tool loop without a final answer, force the model to
+  // synthesize one from whatever tool results we have. tool_choice:'none'
+  // means no more tool calls — it must produce text.
+  if (!finalText && Date.now() < deadline) {
+    try {
+      input.sse.write({ type: 'status', kind: 'drafting' });
+      const synthResp = await btl.chat.completions.create(
+        {
+          model: cfg.model,
+          temperature: cfg.temperature,
+          tool_choice: 'none',
+          messages: [
+            ...messages,
+            {
+              role: 'system',
+              content:
+                'Time is short. Answer using ONLY what the tool results above already gave you. Cite the specific [INC-...] and [RB-...] ids you actually saw. Do not call any more tools.'
+            }
+          ],
+          ...({ enable_thinking: false } as Record<string, unknown>)
+        } as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming
+      );
+      tokensIn += synthResp.usage?.prompt_tokens ?? 0;
+      tokensOut += synthResp.usage?.completion_tokens ?? 0;
+      finalText = synthResp.choices[0]?.message?.content ?? '';
+    } catch (e) {
+      console.error('final-answer synthesis failed:', e);
+    }
+  }
+
+  // Only after the synthesis pass do we admit we couldn't answer. Say so
+  // clearly instead of dumping a list of incident ids that pretends to be
+  // an answer.
   if (!finalText) {
     timedOut = true;
-    finalText = deterministicFallback(seenIncidentIds, seenRunbookIds);
+    finalText =
+      "I couldn't put together a full answer for that in time. Try a more specific query — the service name, a time window, or the error phrasing.";
   }
 
   // Citation validation + one retry
@@ -292,23 +333,3 @@ function summarizeResult(name: string, result: unknown): { text: string; count?:
   return { text: 'ok' };
 }
 
-function deterministicFallback(
-  incidentIds: Set<string>,
-  runbookIds: Set<string>
-): string {
-  const parts: string[] = [
-    'I ran out of time before I could put together a full answer, but here is what I found in memory:'
-  ];
-  const inc = Array.from(incidentIds).filter((s) => s.length === 8).slice(0, 3);
-  if (inc.length > 0) {
-    parts.push(`Related incidents: ${inc.map((i) => `[INC-${i}]`).join(' ')}.`);
-  }
-  const rb = Array.from(runbookIds).filter((s) => s.length === 8).slice(0, 2);
-  if (rb.length > 0) {
-    parts.push(`Related runbooks: ${rb.map((i) => `[RB-${i}]`).join(' ')}.`);
-  }
-  if (inc.length === 0 && rb.length === 0) {
-    parts.push('Nothing matched the query yet. Try more specific keywords.');
-  }
-  return parts.join(' ');
-}
