@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   description: 'Incident memory for on call teams.'
 };
 
-const themeInitScript = `(function(){try{var t=localStorage.getItem('helena-theme');if(!t){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();`;
+const themeInitScript = `(function(){try{var t=localStorage.getItem('helena-theme')||'dark';document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();`;
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
