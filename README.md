@@ -75,7 +75,7 @@ sequenceDiagram
   participant U as User
   participant API as SSE endpoint
   participant CLS as Classifier
-  participant LOOP as Tool loop
+  participant TL as Tool loop
   participant DB as Postgres
   participant SYN as Synthesizer
 
@@ -83,10 +83,10 @@ sequenceDiagram
   API->>CLS: route this query
   CLS-->>API: intent, sources to try
   loop until answer or budget exhausted
-    API->>LOOP: pick next tool
-    LOOP->>DB: query_incidents or list_recent or fetch_runbook
-    DB-->>LOOP: rows
-    LOOP-->>API: tool result, maybe more calls
+    API->>TL: pick next tool
+    TL->>DB: query_incidents or list_recent or fetch_runbook
+    DB-->>TL: rows
+    TL-->>API: tool result, maybe more calls
   end
   API->>SYN: compose final with citations
   SYN-->>API: text with INC-xxx and RB-xxx markers
