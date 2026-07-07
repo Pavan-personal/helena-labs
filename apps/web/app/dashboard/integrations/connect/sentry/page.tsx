@@ -1,6 +1,6 @@
 import { requireWorkspace, encodeSessionToken } from '@/lib/session';
 import { isDemoWorkspace } from '@/lib/demo';
-import { DemoBlockNotice } from '@/app/components/demo-block';
+import { DemoConnectPanel } from '@/app/components/demo-block';
 import {
   IntegrationWalkthrough,
   MockChrome,
@@ -20,15 +20,8 @@ export default async function ConnectSentryPage({
 }) {
   const params = await searchParams;
   const workspace = await requireWorkspace(params.hs);
-  if (isDemoWorkspace(workspace.id)) {
-    return (
-      <DemoBlockNotice
-        title="Sentry connect is disabled here"
-        detail="Pasting a Sentry Internal Integration token here would share it with every demo visitor. Install helena on your own Slack or Discord workspace to connect Sentry against your own org."
-      />
-    );
-  }
   const token = encodeSessionToken(workspace.id);
+  const isDemo = isDemoWorkspace(workspace.id);
   const alreadyConnected = Boolean(workspace.sentry_org_slug && workspace.sentry_token);
 
   return (
@@ -69,6 +62,9 @@ export default async function ConnectSentryPage({
         </div>
 
         <div className="lg:sticky lg:top-8">
+          {isDemo ? (
+            <DemoConnectPanel brand="#c9a6ff" />
+          ) : (
           <form
             action="/api/auth/sentry/configure"
             method="POST"
@@ -132,6 +128,7 @@ export default async function ConnectSentryPage({
               on each project that route back to helena.
             </div>
           </form>
+          )}
         </div>
       </div>
     </div>
@@ -164,7 +161,7 @@ const SENTRY_STEPS: WalkStep[] = [
     ),
     visual: (
       <MockChrome vendor="Sentry" brand="#c9a6ff" path="/settings/organization">
-        <div className="grid grid-cols-[110px_1fr] gap-3 min-h-[120px]">
+        <div className="grid grid-cols-[170px_1fr] gap-3 min-h-[140px]">
           <div className="rounded-md border border-neutral-900 bg-neutral-950 p-2 space-y-1">
             <MockRow label="General" />
             <MockRow label="Projects" />
