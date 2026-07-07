@@ -177,14 +177,21 @@ export async function runToolLoop(input: RunLoopInput): Promise<RunLoopResult> {
       continue;
     }
 
-    // No tool calls: model produced final text
+    // No tool calls: model produced final text.
     finalText = msg.content ?? '';
+    // DeepSeek sometimes leaks its internal DSML tool-call syntax as plain
+    // text instead of using the tool_calls field. If we see those sentinels
+    // discard the answer and force a clean synthesis pass below.
+    if (containsRawToolSyntax(finalText)) {
+      finalText = '';
+    }
     break;
   }
 
-  // If we exited the tool loop without a final answer, force the model to
-  // synthesize one from whatever tool results we have. tool_choice:'none'
-  // means no more tool calls — it must produce text.
+  // If we exited the tool loop without a final answer (or the model
+  // produced raw tool-call syntax as text), force it to synthesize a
+  // clean answer from whatever tool results we have. tool_choice:'none'
+  // means no more tool calls — it must produce prose.
   if (!finalText && Date.now() < deadline) {
     try {
       input.sse.write({ type: 'status', kind: 'drafting' });
@@ -198,7 +205,7 @@ export async function runToolLoop(input: RunLoopInput): Promise<RunLoopResult> {
             {
               role: 'system',
               content:
-                'Time is short. Answer using ONLY what the tool results above already gave you. Cite the specific [INC-...] and [RB-...] ids you actually saw. Do not call any more tools.'
+                'Answer using ONLY what the tool results above already gave you. Cite the specific [INC-abcdefgh] and [RB-abcdefgh] ids you saw inline in prose. Do NOT emit tool_calls syntax, DSML markers, XML tags, or any function-calling scaffolding — just plain markdown prose.'
             }
           ],
           ...({ enable_thinking: false } as Record<string, unknown>)
@@ -206,7 +213,8 @@ export async function runToolLoop(input: RunLoopInput): Promise<RunLoopResult> {
       );
       tokensIn += synthResp.usage?.prompt_tokens ?? 0;
       tokensOut += synthResp.usage?.completion_tokens ?? 0;
-      finalText = synthResp.choices[0]?.message?.content ?? '';
+      const synthText = synthResp.choices[0]?.message?.content ?? '';
+      finalText = containsRawToolSyntax(synthText) ? '' : synthText;
     } catch (e) {
       console.error('final-answer synthesis failed:', e);
     }
@@ -333,5 +341,22 @@ function summarizeResult(name: string, result: unknown): { text: string; count?:
     return { text: `${count} runbook${count === 1 ? '' : 's'}`, count };
   }
   return { text: 'ok' };
+}
+
+/**
+ * Some models (notably DeepSeek reasoning tier) sometimes emit their
+ * internal tool-call scaffolding as plain text instead of using the
+ * OpenAI-format tool_calls field. We refuse to ship anything containing
+ * those markers as a user-visible answer.
+ */
+function containsRawToolSyntax(text: string): boolean {
+  if (!text) return false;
+  return (
+    text.includes('DSML') ||
+    /<[|｜]tool_calls[|｜]?>/i.test(text) ||
+    /<\/?invoke\b/i.test(text) ||
+    /<parameter\s+name=/i.test(text) ||
+    /<function_calls>/i.test(text)
+  );
 }
 

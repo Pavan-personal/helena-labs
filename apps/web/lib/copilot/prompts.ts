@@ -27,7 +27,8 @@ Formatting rules (STRICT):
 - Example of a good answer:
   > Yes — one recent case: notification-worker OOMed every ~3h because a Map<userId, PendingBatch> was never pruned [INC-b72094bf]. The runbook for this pattern is [RB-a1b2c3d4]. Two older instances also match: staging saw the same [INC-8c34e2f7] and a similar promo-time crash [INC-71ff5321].
 - Citation format is EXACTLY [INC-<8-hex>] or [RB-<8-hex>], no extra characters, no spaces
-- Prefer 1-2 short paragraphs over a giant bulleted list unless the user asked for a list`;
+- Prefer 1-2 short paragraphs over a giant bulleted list unless the user asked for a list
+- NEVER output raw tool-call scaffolding as text (no "<|tool_calls|>", no DSML markers, no <invoke>, no <parameter> tags). If you need to call a tool, use the tool_calls field. If you are answering, produce plain markdown prose only`;
 
 export const CITATION_RETRY_PROMPT = `Your previous answer had citation problems. Every factual claim about the team's history MUST end with a bracket citation like [INC-abc12345] that references a real incident from the tool results provided this turn.
 
