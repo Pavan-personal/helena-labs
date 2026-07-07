@@ -117,14 +117,23 @@ export async function POST(req: Request) {
     }
 
     const priorAll = await listMessages(threadId, 0);
-    priorConvo = [];
+    // Cap the conversation context so long threads don't blow the model's
+    // prompt budget and push tool-loop latency past the 45s wall clock.
+    // Keep the last MAX_HISTORY_PAIRS user+assistant turns plus per-message
+    // content truncation. Prior state deeper than that is out of context
+    // for a follow-up question anyway.
+    const MAX_HISTORY_PAIRS = 6;
+    const MAX_CONTENT_CHARS = 1500;
+    const filteredHistory: ChatMessage[] = [];
     for (const m of priorAll) {
-      if (m.role === 'user' && m.content) {
-        priorConvo.push({ role: 'user', content: m.content });
-      } else if (m.role === 'assistant' && m.content) {
-        priorConvo.push({ role: 'assistant', content: m.content });
+      const raw = m.content?.slice(0, MAX_CONTENT_CHARS) ?? null;
+      if (m.role === 'user' && raw) {
+        filteredHistory.push({ role: 'user', content: raw });
+      } else if (m.role === 'assistant' && raw) {
+        filteredHistory.push({ role: 'assistant', content: raw });
       }
     }
+    priorConvo = filteredHistory.slice(-MAX_HISTORY_PAIRS * 2);
 
     effectiveUserText =
       userText ||
