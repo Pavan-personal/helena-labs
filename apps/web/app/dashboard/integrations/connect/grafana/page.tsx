@@ -46,19 +46,11 @@ export default async function ConnectGrafanaPage({
         </p>
       </div>
 
-      <div className="mb-10">
-        <div className="text-[11px] uppercase tracking-widest text-neutral-500 mb-4">
-          Where to get the token
-        </div>
-        <IntegrationWalkthrough brand="#f5a623" steps={GRAFANA_STEPS} />
-      </div>
-
       {params.err && (
         <div className="border border-red-950 bg-red-950/30 text-red-300 rounded-lg p-3 mb-6 text-sm">
           {decodeErr(params.err)}
         </div>
       )}
-
       {alreadyConnected && (
         <div className="border border-emerald-950 bg-emerald-950/20 text-emerald-300 rounded-lg p-3 mb-6 text-sm">
           Already connected to <code>{workspace.grafana_url}</code>. Submitting will replace the
@@ -66,74 +58,82 @@ export default async function ConnectGrafanaPage({
         </div>
       )}
 
-      <form
-        action="/api/auth/grafana/configure"
-        method="POST"
-        className="max-w-xl space-y-4 rounded-xl border border-neutral-800 bg-neutral-950/40 p-6"
-      >
-        <input type="hidden" name="hs" value={token} />
-
+      {/* Two-column: walkthrough on the left scrolls, form on the right sticks. */}
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-8 lg:gap-12 items-start">
         <div>
-          <label htmlFor="url" className="block text-xs uppercase tracking-widest text-neutral-500 mb-1.5">
-            Grafana URL
-          </label>
-          <input
-            id="url"
-            name="url"
-            type="url"
-            required
-            defaultValue={workspace.grafana_url ?? ''}
-            placeholder="https://your-stack.grafana.net"
-            className="w-full px-3 py-2 rounded-lg bg-neutral-950 border border-neutral-800 text-sm text-neutral-200 placeholder:text-neutral-600 focus:border-neutral-600 focus:outline-none"
-          />
-          <div className="text-[11px] text-neutral-500 mt-1.5">
-            The full URL of your Grafana instance. Grafana Cloud shows this in the top-right
-            corner.
+          <div className="text-[11px] uppercase tracking-widest text-neutral-500 mb-5">
+            Where to get the token
           </div>
+          <IntegrationWalkthrough brand="#f5a623" steps={GRAFANA_STEPS} />
         </div>
 
-        <div>
-          <label htmlFor="token" className="block text-xs uppercase tracking-widest text-neutral-500 mb-1.5">
-            Service account token
-          </label>
-          <input
-            id="token"
-            name="token"
-            type="password"
-            required
-            placeholder="glsa_..."
-            className="w-full px-3 py-2 rounded-lg bg-neutral-950 border border-neutral-800 text-sm text-neutral-200 placeholder:text-neutral-600 focus:border-neutral-600 focus:outline-none font-mono"
-          />
-          <div className="text-[11px] text-neutral-500 mt-1.5">
-            Administration &rarr; Users and access &rarr; Service accounts &rarr; Add token.
-            Editor role or higher.
-          </div>
-        </div>
-
-        <div className="pt-2 flex items-center gap-3">
-          <button
-            type="submit"
-            className="px-4 py-2 rounded-lg bg-white text-neutral-900 text-sm font-medium hover:bg-neutral-100"
+        <div className="lg:sticky lg:top-8">
+          <form
+            action="/api/auth/grafana/configure"
+            method="POST"
+            className="rounded-xl border border-neutral-800 bg-neutral-950/60 p-5"
           >
-            Verify and create Contact Point
-          </button>
-          <a
-            href={`/dashboard/integrations?hs=${encodeURIComponent(token)}`}
-            className="text-xs text-neutral-500 hover:text-neutral-300"
-          >
-            Cancel
-          </a>
-        </div>
+            <input type="hidden" name="hs" value={token} />
 
-        <div className="pt-4 border-t border-neutral-900 text-[11px] text-neutral-500 leading-relaxed">
-          What happens when you submit:
-          <ol className="mt-1.5 space-y-1 list-decimal list-inside">
-            <li>We validate your token by calling Grafana&rsquo;s user endpoint.</li>
-            <li>We create a webhook Contact Point named <code>helena-oncall</code>.</li>
-            <li>You go to Alerting &rarr; Notification Policies and route the alerts you want to that contact point.</li>
-          </ol>
+            <div className="text-[11px] uppercase tracking-widest text-neutral-500 mb-4 flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: '#f5a623' }} />
+              Paste it here
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="url" className="block text-[10px] uppercase tracking-widest text-neutral-500 mb-1.5">
+                  Grafana URL
+                </label>
+                <input
+                  id="url"
+                  name="url"
+                  type="url"
+                  required
+                  defaultValue={workspace.grafana_url ?? ''}
+                  placeholder="https://your-stack.grafana.net"
+                  className="w-full px-3 py-2 rounded-lg bg-neutral-950 border border-neutral-800 text-sm text-neutral-200 placeholder:text-neutral-600 focus:border-neutral-600 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="token" className="block text-[10px] uppercase tracking-widest text-neutral-500 mb-1.5">
+                  Service account token
+                </label>
+                <input
+                  id="token"
+                  name="token"
+                  type="password"
+                  required
+                  placeholder="glsa_..."
+                  className="w-full px-3 py-2 rounded-lg bg-neutral-950 border border-neutral-800 text-sm text-neutral-200 placeholder:text-neutral-600 focus:border-neutral-600 focus:outline-none font-mono"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center gap-3">
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 rounded-lg bg-white text-neutral-900 text-sm font-medium hover:bg-neutral-100"
+                >
+                  Verify and connect
+                </button>
+                <a
+                  href={`/dashboard/integrations?hs=${encodeURIComponent(token)}`}
+                  className="text-xs text-neutral-500 hover:text-neutral-300"
+                >
+                  Cancel
+                </a>
+              </div>
+            </div>
+
+            <div className="mt-5 pt-4 border-t border-neutral-900 text-[11px] text-neutral-500 leading-relaxed">
+              On submit we validate the token, create a webhook Contact Point named{' '}
+              <code>helena-oncall</code>, then you pick which alerts route to it from Grafana&rsquo;s
+              notification policies.
+            </div>
+          </form>
         </div>
-      </form>
+      </div>
     </div>
   );
 }
@@ -157,8 +157,8 @@ const GRAFANA_STEPS: WalkStep[] = [
     title: 'Open Administration',
     detail: (
       <>
-        In your Grafana Cloud UI, click the cog icon in the left rail. That&rsquo;s the top-level{' '}
-        <span className="text-neutral-200">Administration</span> menu.
+        Click the cog icon in Grafana&rsquo;s left rail —{' '}
+        <span className="text-neutral-200">Administration</span>.
       </>
     ),
     visual: (
@@ -182,9 +182,8 @@ const GRAFANA_STEPS: WalkStep[] = [
     title: 'Users and access → Service accounts',
     detail: (
       <>
-        Choose <span className="text-neutral-200">Users and access</span>, then{' '}
-        <span className="text-neutral-200">Service accounts</span>. Not user accounts — service
-        accounts are non-human identities meant for tokens like this one.
+        <span className="text-neutral-200">Service accounts</span>, not user accounts. Service
+        accounts are non-human identities for tokens like this.
       </>
     ),
     visual: (
@@ -204,10 +203,8 @@ const GRAFANA_STEPS: WalkStep[] = [
     title: 'Add a service account named helena',
     detail: (
       <>
-        Click <span className="text-neutral-200">Add service account</span>. Name it{' '}
-        <code className="px-1 py-0.5 rounded bg-neutral-900 text-[11px]">helena</code>, role{' '}
-        <span className="text-neutral-200">Editor</span> or higher (Editor is enough to create
-        a Contact Point).
+        Name it <code className="px-1 py-0.5 rounded bg-neutral-900 text-[11px]">helena</code>,
+        role <span className="text-neutral-200">Editor</span> — enough to create Contact Points.
       </>
     ),
     visual: (
@@ -225,13 +222,12 @@ const GRAFANA_STEPS: WalkStep[] = [
   },
   {
     n: '04',
-    title: 'Add service account token, copy it once',
+    title: 'Add token — copy it once',
     detail: (
       <>
-        On the new service account page, click{' '}
-        <span className="text-neutral-200">Add service account token</span>. Grafana shows the
-        token once — copy it now, you can&rsquo;t retrieve it later. It starts with{' '}
-        <code className="px-1 py-0.5 rounded bg-neutral-900 text-[11px]">glsa_</code>.
+        Click <span className="text-neutral-200">Add service account token</span>. Starts with{' '}
+        <code className="px-1 py-0.5 rounded bg-neutral-900 text-[11px]">glsa_</code>. Shown
+        once — copy before leaving.
       </>
     ),
     visual: (
@@ -250,13 +246,12 @@ const GRAFANA_STEPS: WalkStep[] = [
   },
   {
     n: '05',
-    title: 'Paste URL + token in the form below',
+    title: 'Paste URL + token here',
     detail: (
       <>
-        Your Grafana URL is in the top-right corner of any Grafana page (e.g.{' '}
-        <code className="px-1 py-0.5 rounded bg-neutral-900 text-[11px]">your-stack.grafana.net</code>).
-        Paste it and the token below — we validate the token and create a Contact Point named{' '}
-        <code className="px-1 py-0.5 rounded bg-neutral-900 text-[11px]">helena-oncall</code>.
+        URL is in Grafana&rsquo;s top-right corner. Paste both into the form on the right — we
+        auto-create <code className="px-1 py-0.5 rounded bg-neutral-900 text-[11px]">helena-oncall</code>{' '}
+        Contact Point.
       </>
     ),
     visual: (
@@ -274,10 +269,9 @@ const GRAFANA_STEPS: WalkStep[] = [
     title: 'Route the alerts you want',
     detail: (
       <>
-        Back in Grafana, go to{' '}
-        <span className="text-neutral-200">Alerting → Notification policies</span> and add{' '}
+        <span className="text-neutral-200">Alerting → Notification policies</span>. Add{' '}
         <code className="px-1 py-0.5 rounded bg-neutral-900 text-[11px]">helena-oncall</code>{' '}
-        as the receiver for any alert group you want indexed. Only what you route reaches us.
+        as receiver for alerts you want indexed. Only routed alerts reach us.
       </>
     ),
     visual: (

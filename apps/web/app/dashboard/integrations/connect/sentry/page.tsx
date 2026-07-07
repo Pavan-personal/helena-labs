@@ -47,19 +47,11 @@ export default async function ConnectSentryPage({
         </p>
       </div>
 
-      <div className="mb-10">
-        <div className="text-[11px] uppercase tracking-widest text-neutral-500 mb-4">
-          Where to get the token
-        </div>
-        <IntegrationWalkthrough brand="#c9a6ff" steps={SENTRY_STEPS} />
-      </div>
-
       {params.err && (
         <div className="border border-red-950 bg-red-950/30 text-red-300 rounded-lg p-3 mb-6 text-sm">
           {decodeErr(params.err)}
         </div>
       )}
-
       {alreadyConnected && (
         <div className="border border-emerald-950 bg-emerald-950/20 text-emerald-300 rounded-lg p-3 mb-6 text-sm">
           Already connected to <code>{workspace.sentry_org_slug}</code> with{' '}
@@ -68,73 +60,80 @@ export default async function ConnectSentryPage({
         </div>
       )}
 
-      <form
-        action="/api/auth/sentry/configure"
-        method="POST"
-        className="max-w-xl space-y-4 rounded-xl border border-neutral-800 bg-neutral-950/40 p-6"
-      >
-        <input type="hidden" name="hs" value={token} />
-
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-8 lg:gap-12 items-start">
         <div>
-          <label htmlFor="orgSlug" className="block text-xs uppercase tracking-widest text-neutral-500 mb-1.5">
-            Sentry organization slug
-          </label>
-          <input
-            id="orgSlug"
-            name="orgSlug"
-            type="text"
-            required
-            defaultValue={workspace.sentry_org_slug ?? ''}
-            placeholder="your-org"
-            className="w-full px-3 py-2 rounded-lg bg-neutral-950 border border-neutral-800 text-sm text-neutral-200 placeholder:text-neutral-600 focus:border-neutral-600 focus:outline-none font-mono"
-          />
-          <div className="text-[11px] text-neutral-500 mt-1.5">
-            From your Sentry URL: <code>sentry.io/organizations/&lt;slug&gt;/</code>
+          <div className="text-[11px] uppercase tracking-widest text-neutral-500 mb-5">
+            Where to get the token
           </div>
+          <IntegrationWalkthrough brand="#c9a6ff" steps={SENTRY_STEPS} />
         </div>
 
-        <div>
-          <label htmlFor="token" className="block text-xs uppercase tracking-widest text-neutral-500 mb-1.5">
-            Integration token
-          </label>
-          <input
-            id="token"
-            name="token"
-            type="password"
-            required
-            placeholder="64-character hex token"
-            className="w-full px-3 py-2 rounded-lg bg-neutral-950 border border-neutral-800 text-sm text-neutral-200 placeholder:text-neutral-600 focus:border-neutral-600 focus:outline-none font-mono"
-          />
-          <div className="text-[11px] text-neutral-500 mt-1.5">
-            Settings &rarr; Custom Integrations &rarr; helena &rarr; Tokens section. Needs
-            Project, Organization, Alerts, Issue &amp; Event Read permissions.
-          </div>
-        </div>
-
-        <div className="pt-2 flex items-center gap-3">
-          <button
-            type="submit"
-            className="px-4 py-2 rounded-lg bg-white text-neutral-900 text-sm font-medium hover:bg-neutral-100"
+        <div className="lg:sticky lg:top-8">
+          <form
+            action="/api/auth/sentry/configure"
+            method="POST"
+            className="rounded-xl border border-neutral-800 bg-neutral-950/60 p-5"
           >
-            Verify and connect
-          </button>
-          <a
-            href={`/dashboard/integrations?hs=${encodeURIComponent(token)}`}
-            className="text-xs text-neutral-500 hover:text-neutral-300"
-          >
-            Cancel
-          </a>
-        </div>
+            <input type="hidden" name="hs" value={token} />
 
-        <div className="pt-4 border-t border-neutral-900 text-[11px] text-neutral-500 leading-relaxed">
-          What happens when you submit:
-          <ol className="mt-1.5 space-y-1 list-decimal list-inside">
-            <li>We validate your token by fetching your org and project list.</li>
-            <li>We store the token so we can look up context when alerts fire.</li>
-            <li>Any Sentry alert rule that already routes to your webhook URL keeps working.</li>
-          </ol>
+            <div className="text-[11px] uppercase tracking-widest text-neutral-500 mb-4 flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: '#c9a6ff' }} />
+              Paste it here
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="orgSlug" className="block text-[10px] uppercase tracking-widest text-neutral-500 mb-1.5">
+                  Organization slug
+                </label>
+                <input
+                  id="orgSlug"
+                  name="orgSlug"
+                  type="text"
+                  required
+                  defaultValue={workspace.sentry_org_slug ?? ''}
+                  placeholder="your-org"
+                  className="w-full px-3 py-2 rounded-lg bg-neutral-950 border border-neutral-800 text-sm text-neutral-200 placeholder:text-neutral-600 focus:border-neutral-600 focus:outline-none font-mono"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="token" className="block text-[10px] uppercase tracking-widest text-neutral-500 mb-1.5">
+                  Integration token
+                </label>
+                <input
+                  id="token"
+                  name="token"
+                  type="password"
+                  required
+                  placeholder="64-character hex token"
+                  className="w-full px-3 py-2 rounded-lg bg-neutral-950 border border-neutral-800 text-sm text-neutral-200 placeholder:text-neutral-600 focus:border-neutral-600 focus:outline-none font-mono"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center gap-3">
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 rounded-lg bg-white text-neutral-900 text-sm font-medium hover:bg-neutral-100"
+                >
+                  Verify and connect
+                </button>
+                <a
+                  href={`/dashboard/integrations?hs=${encodeURIComponent(token)}`}
+                  className="text-xs text-neutral-500 hover:text-neutral-300"
+                >
+                  Cancel
+                </a>
+              </div>
+            </div>
+
+            <div className="mt-5 pt-4 border-t border-neutral-900 text-[11px] text-neutral-500 leading-relaxed">
+              We validate the token, fetch your org + project list, and auto-create alert rules
+              on each project that route back to helena.
+            </div>
+          </form>
         </div>
-      </form>
+      </div>
     </div>
   );
 }
