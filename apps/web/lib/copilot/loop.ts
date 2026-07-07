@@ -48,13 +48,15 @@ export async function runToolLoop(input: RunLoopInput): Promise<RunLoopResult> {
   const btl = getBtlClient();
   const cfg = ROUTE_CONFIG[input.label];
   const start = Date.now();
-  const wallClockMs = input.wallClockMs ?? 45_000;
+  // We have ~60s of function runtime on Vercel; give the loop 52s and
+  // leave 8s at the end for finalizeTurn + SSE close. Bumped from 45s so
+  // hard questions with multiple tool calls have room to actually finish
+  // instead of getting cut off mid-reasoning.
+  const wallClockMs = input.wallClockMs ?? 52_000;
   const deadline = start + wallClockMs;
-  // Reserve time near the end of the budget for a forced final-answer
-  // pass. If we haven't produced text and the tool loop is running long,
-  // we cut off tool calls and demand a summary — better than dumping a
-  // half-answer.
-  const SYNTHESIS_RESERVE_MS = 15_000;
+  // Reserve 10s near the end for a forced final-answer pass so we always
+  // ship a real answer, not an apology. Tool loop gets 42s.
+  const SYNTHESIS_RESERVE_MS = 10_000;
   const synthesisCutoff = deadline - SYNTHESIS_RESERVE_MS;
 
   const messages: ChatMessage[] = [...input.initialMessages];
