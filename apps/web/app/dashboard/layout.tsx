@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import { requireWorkspace, encodeSessionToken } from '@/lib/session';
 import { SessionSync, SignOutButton } from '@/app/components/session-sync';
-import { ThemeToggle } from '@/app/components/theme-toggle';
 
 export const dynamic = 'force-dynamic';
 
@@ -113,12 +112,9 @@ export default async function DashboardLayout({ children }: { children: ReactNod
                 {workspace.installer_email}
               </div>
             )}
-            <div className="flex items-center justify-between">
-              <SignOutButton className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors">
-                Sign out
-              </SignOutButton>
-              <ThemeToggle />
-            </div>
+            <SignOutButton className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors">
+              Sign out
+            </SignOutButton>
           </div>
         </aside>
         <main className="h-screen overflow-y-auto scrollbar-none">

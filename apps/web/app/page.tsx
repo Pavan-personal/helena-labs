@@ -18,7 +18,6 @@ import { getWorkspaceFromSession, encodeSessionToken } from '@/lib/session';
 import { LandingSessionCheck } from '@/app/components/session-sync';
 import { AnimatedTrace } from '@/app/components/animated-trace';
 import { IntegrationShowcase } from '@/app/components/integration-showcase';
-import { ThemeToggle } from '@/app/components/theme-toggle';
 import { DEMO_WORKSPACE_ID } from '@/lib/demo';
 
 export const dynamic = 'force-dynamic';
@@ -63,16 +62,13 @@ export default async function Home({
             <Image src="/logo.png" alt="Helena Labs" width={26} height={26} priority />
             <span className="text-[15px] font-semibold tracking-tight text-app">Helena Labs</span>
           </div>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <Link
-              href={demoHref}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-md border border-neutral-800 hover:border-neutral-600 text-xs text-neutral-200"
-            >
-              Try live demo
-              <ArrowRight className="h-3 w-3" strokeWidth={2} />
-            </Link>
-          </div>
+          <Link
+            href={demoHref}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-md border border-neutral-800 hover:border-neutral-600 text-xs text-neutral-200"
+          >
+            Try live demo
+            <ArrowRight className="h-3 w-3" strokeWidth={2} />
+          </Link>
         </nav>
 
         {/* HERO */}
