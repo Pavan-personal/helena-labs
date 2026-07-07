@@ -21,33 +21,27 @@ export function IntegrationWalkthrough({
   steps: WalkStep[];
 }) {
   return (
-    <div className="space-y-6">
-      {steps.map((s, i) => (
-        <div
-          key={s.n}
-          className="grid grid-cols-1 md:grid-cols-[minmax(260px,320px)_minmax(0,1fr)] gap-6 md:gap-8 relative"
-        >
-          <div className="relative">
-            <div className="flex items-start gap-3">
-              <div
-                className="shrink-0 h-8 w-8 rounded-lg border border-neutral-800 bg-neutral-950 flex items-center justify-center text-[11px] font-mono font-semibold"
-                style={{ color: brand }}
-              >
-                {s.n}
-              </div>
-              <div className="min-w-0">
-                <div className="text-sm font-semibold text-white leading-tight mb-1.5">
-                  {s.title}
-                </div>
-                <div className="text-[12px] text-neutral-400 leading-relaxed">{s.detail}</div>
-              </div>
+    <div className="space-y-10">
+      {steps.map((s) => (
+        <div key={s.n} className="space-y-4">
+          {/* Header row: number + title + description all on one line, full width */}
+          <div className="flex items-start gap-3">
+            <div
+              className="shrink-0 h-8 w-8 rounded-lg border border-neutral-800 bg-neutral-950 flex items-center justify-center text-[11px] font-mono font-semibold"
+              style={{ color: brand }}
+            >
+              {s.n}
             </div>
-            {i < steps.length - 1 && (
-              <div className="hidden md:block absolute left-[15px] top-9 bottom-[-24px] w-px bg-neutral-900" />
-            )}
+            <div className="min-w-0 pt-0.5">
+              <div className="text-sm font-semibold text-white leading-tight mb-1">
+                {s.title}
+              </div>
+              <div className="text-[13px] text-neutral-400 leading-relaxed">{s.detail}</div>
+            </div>
           </div>
 
-          <div className="rounded-xl border border-neutral-800 bg-neutral-950/60 overflow-hidden">
+          {/* Visual below, full width, indented to align with title text */}
+          <div className="ml-11 rounded-xl border border-neutral-800 bg-neutral-950/60 overflow-hidden">
             {s.visual}
           </div>
         </div>
