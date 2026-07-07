@@ -21,7 +21,15 @@ export async function GET(req: Request) {
   const installationId = Number(installationIdRaw);
 
   if (!state) return redirectErr(url.origin, 'missing_state');
-  const [nonce, workspaceToken] = state.split('.');
+  // encodeSessionToken() returns "<workspaceId>.<signature>" so the full
+  // state has TWO dots. Split only on the FIRST dot to keep the whole
+  // session token intact. Previously we destructured the first two parts
+  // and lost the signature, which made getWorkspaceFromSession() reject
+  // the token as unsigned.
+  const firstDot = state.indexOf('.');
+  if (firstDot < 0) return redirectErr(url.origin, 'bad_state');
+  const nonce = state.slice(0, firstDot);
+  const workspaceToken = state.slice(firstDot + 1);
   if (!nonce || !workspaceToken) return redirectErr(url.origin, 'bad_state');
 
   const jar = await cookies();
