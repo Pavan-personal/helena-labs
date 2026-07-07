@@ -46,6 +46,25 @@
 
   /* Scrollbar. */
   --scroll: 38 38 38;
+
+  /* Alert / toast colors — dark mode defaults. */
+  --alert-error-bg: 69 10 10;
+  --alert-error-text: 252 165 165;
+  --alert-error-border: 69 10 10;
+  --alert-success-bg: 6 44 34;
+  --alert-success-text: 110 231 183;
+  --alert-success-border: 4 78 51;
+  --alert-info-bg: 23 23 23;
+  --alert-info-text: 163 163 163;
+  --alert-info-border: 38 38 38;
+
+  /* Citation chip colors — sky for INC, emerald for RB. */
+  --chip-inc-bg: 12 43 78;
+  --chip-inc-text: 125 211 252;
+  --chip-inc-border: 7 89 133;
+  --chip-rb-bg: 6 44 34;
+  --chip-rb-text: 110 231 183;
+  --chip-rb-border: 6 78 59;
 }
 
 [data-theme='light'] {
@@ -80,6 +99,51 @@
   --dot-fg: 250 250 249;
 
   --scroll: 214 211 209;
+
+  /* Alerts / chips — pale bg, dark text for light mode. */
+  --alert-error-bg: 254 226 226;
+  --alert-error-text: 153 27 27;
+  --alert-error-border: 252 165 165;
+  --alert-success-bg: 220 252 231;
+  --alert-success-text: 6 95 70;
+  --alert-success-border: 110 231 183;
+  --alert-info-bg: 245 245 244;
+  --alert-info-text: 68 64 60;
+  --alert-info-border: 214 211 209;
+
+  --chip-inc-bg: 224 242 254;
+  --chip-inc-text: 7 89 133;
+  --chip-inc-border: 125 211 252;
+  --chip-rb-bg: 220 252 231;
+  --chip-rb-text: 6 95 70;
+  --chip-rb-border: 110 231 183;
+}
+
+/* Semantic utility classes — used everywhere alerts and chips render. */
+.helena-alert-error {
+  background: rgb(var(--alert-error-bg));
+  color: rgb(var(--alert-error-text));
+  border: 1px solid rgb(var(--alert-error-border));
+}
+.helena-alert-success {
+  background: rgb(var(--alert-success-bg));
+  color: rgb(var(--alert-success-text));
+  border: 1px solid rgb(var(--alert-success-border));
+}
+.helena-alert-info {
+  background: rgb(var(--alert-info-bg));
+  color: rgb(var(--alert-info-text));
+  border: 1px solid rgb(var(--alert-info-border));
+}
+.helena-chip-inc {
+  background: rgb(var(--chip-inc-bg));
+  color: rgb(var(--chip-inc-text));
+  border: 1px solid rgb(var(--chip-inc-border));
+}
+.helena-chip-rb {
+  background: rgb(var(--chip-rb-bg));
+  color: rgb(var(--chip-rb-text));
+  border: 1px solid rgb(var(--chip-rb-border));
 }
 
 html, body {

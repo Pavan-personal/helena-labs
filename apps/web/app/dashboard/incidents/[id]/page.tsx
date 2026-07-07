@@ -14,14 +14,14 @@ const SOURCE_COLOR: Record<string, string> = {
   sentry: 'bg-purple-950/60 text-purple-300 border-purple-900/60',
   github: 'bg-neutral-800 text-neutral-200 border-neutral-700',
   generic: 'bg-neutral-900 text-neutral-400 border-neutral-800',
-  manual: 'bg-emerald-950/60 text-emerald-300 border-emerald-900/60'
+  manual: 'helena-alert-success'
 };
 
 const SEV_COLOR: Record<string, string> = {
   low: 'bg-neutral-900 text-neutral-400 border-neutral-800',
   medium: 'bg-yellow-950/50 text-yellow-300 border-yellow-900/60',
   high: 'bg-orange-950/60 text-orange-300 border-orange-900/60',
-  critical: 'bg-red-950/60 text-red-300 border-red-900/60'
+  critical: 'helena-alert-error'
 };
 
 export default async function IncidentDetailPage({

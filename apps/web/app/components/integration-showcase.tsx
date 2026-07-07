@@ -280,7 +280,7 @@ function Constellation({
   }> = [
     { key: 'chat', label: 'Slack', icon: <ChatIcon />, top: '14%', left: '50%', labelBelow: false },
     { key: 'sentry', label: 'Sentry', icon: <SiSentry size={18} color="#c9a6ff" />, top: '50%', left: '86%', labelBelow: true },
-    { key: 'github', label: 'GitHub', icon: <SiGithub size={18} color="#e6e6e6" />, top: '86%', left: '50%', labelBelow: true },
+    { key: 'github', label: 'GitHub', icon: <span className="inline-flex [&_svg]:fill-neutral-200"><SiGithub size={18} /></span>, top: '86%', left: '50%', labelBelow: true },
     { key: 'grafana', label: 'Grafana', icon: <SiGrafana size={18} color="#f5a623" />, top: '50%', left: '14%', labelBelow: true }
   ];
 
@@ -306,7 +306,7 @@ function Constellation({
       {/* Concentric ring for visual anchor. Sized so the source nodes sit
           just outside the ring instead of clipping through it. */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-        <div className="h-[240px] w-[240px] rounded-full border border-dashed border-neutral-900" />
+        <div className="h-[240px] w-[240px] rounded-full border border-dashed border-neutral-700" />
       </div>
 
       {/* Connection lines drawn as SVG so we can animate stroke */}
@@ -507,7 +507,7 @@ const SOURCE_META: Record<SourceKey, { label: string; icon: React.ReactNode; col
   chat: { label: 'Chat', icon: <SlackMark size={11} />, color: '#93c5fd' },
   grafana: { label: 'Grafana', icon: <SiGrafana size={11} color="#f5a623" />, color: '#f5a623' },
   sentry: { label: 'Sentry', icon: <SiSentry size={11} color="#c9a6ff" />, color: '#c9a6ff' },
-  github: { label: 'GitHub', icon: <SiGithub size={11} color="#e6e6e6" />, color: '#e6e6e6' }
+  github: { label: 'GitHub', icon: <span className="inline-flex [&_svg]:fill-neutral-200"><SiGithub size={11} /></span>, color: '#e6e6e6' }
 };
 
 /* ATOMS */
@@ -518,7 +518,7 @@ function CitePill({ id, kind = 'inc' }: { id: string; kind?: 'inc' | 'rb' }) {
       className={`inline-block font-mono text-[10px] px-1.5 py-0.5 rounded ${
         kind === 'inc'
           ? 'bg-sky-950/40 text-sky-300 border border-sky-900/40'
-          : 'bg-emerald-950/40 text-emerald-300 border border-emerald-900/40'
+          : 'helena-alert-success'
       }`}
     >
       {id}

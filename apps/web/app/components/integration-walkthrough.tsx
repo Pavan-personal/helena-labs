@@ -157,7 +157,7 @@ export function MockCheckbox({ label, checked }: { label: string; checked?: bool
       <span
         className={`h-3 w-3 rounded border flex items-center justify-center ${
           checked
-            ? 'border-emerald-700 bg-emerald-900/40 text-emerald-300'
+            ? 'helena-alert-success'
             : 'border-neutral-700 bg-neutral-950'
         }`}
       >

@@ -40,12 +40,12 @@ export default async function ConnectGrafanaPage({
       </div>
 
       {params.err && (
-        <div className="border border-red-950 bg-red-950/30 text-red-300 rounded-lg p-3 mb-6 text-sm">
+        <div className="helena-alert-error rounded-lg p-3 mb-6 text-sm">
           {decodeErr(params.err)}
         </div>
       )}
       {alreadyConnected && (
-        <div className="border border-emerald-950 bg-emerald-950/20 text-emerald-300 rounded-lg p-3 mb-6 text-sm">
+        <div className="helena-alert-success rounded-lg p-3 mb-6 text-sm">
           Already connected to <code>{workspace.grafana_url}</code>. Submitting will replace the
           existing configuration.
         </div>
@@ -280,7 +280,7 @@ const GRAFANA_STEPS: WalkStep[] = [
               <span className="text-neutral-500">grafana-default-email</span>
             </div>
           </div>
-          <div className="rounded border border-emerald-900/60 bg-emerald-950/20 p-2">
+          <div className="rounded helena-alert-success p-2">
             <div className="flex items-center justify-between">
               <span className="text-emerald-200">Contact: helena-oncall</span>
               <span className="text-emerald-400 text-[10px]">newly created</span>

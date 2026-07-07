@@ -94,7 +94,7 @@ export default async function Home({
               </p>
 
               {params.install_error && (
-                <div className="border border-red-950 bg-red-950/30 text-red-300 rounded-lg p-3 mb-6 text-sm max-w-md">
+                <div className="helena-alert-error rounded-lg p-3 mb-6 text-sm max-w-md">
                   Install failed: {params.install_error}. Try again.
                 </div>
               )}
@@ -220,7 +220,7 @@ export default async function Home({
             <IntegrationCard name="Discord" desc="Slash command + channel indexing" icon={<SiDiscord size={22} color="#c6ccff" />} />
             <IntegrationCard name="Grafana" desc="Auto-created Contact Point" icon={<SiGrafana size={22} color="#f5a623" />} />
             <IntegrationCard name="Sentry" desc="Auto-created alert rules" icon={<SiSentry size={22} color="#c9a6ff" />} />
-            <IntegrationCard name="GitHub" desc="PR + deployment correlation" icon={<SiGithub size={22} color="#e6e6e6" />} />
+            <IntegrationCard name="GitHub" desc="PR + deployment correlation" icon={<span className="inline-flex [&_svg]:fill-neutral-200"><SiGithub size={22} /></span>} />
           </div>
         </section>
 
@@ -425,7 +425,7 @@ function CitePill({ id, kind = 'inc' }: { id: string; kind?: 'inc' | 'rb' }) {
       className={`inline-block font-mono text-[10px] px-1.5 py-0.5 rounded ${
         kind === 'inc'
           ? 'bg-sky-950/40 text-sky-300 border border-sky-900/40'
-          : 'bg-emerald-950/40 text-emerald-300 border border-emerald-900/40'
+          : 'helena-alert-success'
       }`}
     >
       {id}

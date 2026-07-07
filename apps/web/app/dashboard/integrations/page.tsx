@@ -62,7 +62,7 @@ export default async function IntegrationsPage({
         </div>
       )}
       {params.connected && (
-        <div className="border border-emerald-950 bg-emerald-950/20 text-emerald-300 rounded-lg p-3 mb-6 text-sm flex items-center gap-2">
+        <div className="helena-alert-success rounded-lg p-3 mb-6 text-sm flex items-center gap-2">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
           <span>
             {params.connected === 'github' && 'GitHub App installed. We can now see PRs and deployments in your selected repos.'}
@@ -251,8 +251,8 @@ export default async function IntegrationsPage({
           <div className="text-[11px] uppercase tracking-widest text-neutral-500 mb-2">
             Example request
           </div>
-          <div className="rounded-lg border border-neutral-900 bg-black/40 overflow-x-auto scrollbar-thin">
-            <pre className="text-xs text-neutral-400 p-4 whitespace-pre-wrap break-all leading-relaxed">
+          <div className="rounded-lg border border-neutral-800 bg-neutral-900 overflow-x-auto scrollbar-thin">
+            <pre className="text-xs text-neutral-300 p-4 whitespace-pre-wrap break-all leading-relaxed">
 {`curl -X POST "${genericUrl}" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -331,7 +331,7 @@ function StatusBadge({ status }: { status: 'connected' | 'ready' }) {
     <span
       className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-widest font-medium ${
         status === 'connected'
-          ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-900/60'
+          ? 'helena-alert-success'
           : 'bg-neutral-900 text-neutral-500 border border-neutral-800'
       }`}
     >
@@ -374,7 +374,7 @@ function SentryLogo() {
   return <SiSentry size={22} color="#7553D6" />;
 }
 function GithubLogo() {
-  return <SiGithub size={22} color="#f6f8fa" />;
+  return <span className="inline-flex [&_svg]:fill-neutral-200"><SiGithub size={22} /></span>;
 }
 function WebhookLogo() {
   return <Webhook className="h-5 w-5 text-neutral-400" strokeWidth={1.5} />;

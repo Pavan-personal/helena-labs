@@ -67,7 +67,7 @@ export default async function RunbookDetailPage({
 
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-2 text-[10px] uppercase tracking-widest text-neutral-500">
-          <span className="px-2 py-0.5 rounded border border-emerald-900/60 bg-emerald-950/40 text-emerald-300">
+          <span className="px-2 py-0.5 rounded helena-alert-success">
             Approved
           </span>
           <span className="font-mono text-neutral-500">RB-{runbook.id.slice(0, 6)}</span>

@@ -517,7 +517,7 @@ function TurnBlock({
         </div>
       )}
       {turn.error && (
-        <div className="text-xs text-red-400 rounded border border-red-950 bg-red-950/20 p-2">
+        <div className="helena-alert-error text-xs rounded p-2">
           {turn.error}
         </div>
       )}
@@ -712,19 +712,21 @@ function ChatMarkdown({ text, token }: { text: string; token: string }) {
           </pre>
         ),
         a: ({ href, children }) => {
-          const isCitation = typeof href === 'string' && /\/dashboard\/(incidents|runbooks)\//.test(href);
-          if (isCitation) {
+          const isRunbook = typeof href === 'string' && /\/dashboard\/runbooks\//.test(href);
+          const isIncident = typeof href === 'string' && /\/dashboard\/incidents\//.test(href);
+          if (isIncident || isRunbook) {
+            const chipClass = isRunbook ? 'helena-chip-rb' : 'helena-chip-inc';
             return (
               <Link
                 href={href!}
-                className="inline-flex items-center px-1.5 py-0.5 mx-0.5 rounded text-[10px] font-mono bg-sky-950/60 text-sky-300 border border-sky-900/60 hover:bg-sky-900/50 no-underline"
+                className={`inline-flex items-center px-1.5 py-0.5 mx-0.5 rounded text-[10px] font-mono ${chipClass} hover:brightness-95 no-underline`}
               >
                 {children}
               </Link>
             );
           }
           return (
-            <a href={href} className="text-sky-300 hover:text-sky-200 underline underline-offset-2">
+            <a href={href} className="text-sky-600 hover:text-sky-500 underline underline-offset-2">
               {children}
             </a>
           );

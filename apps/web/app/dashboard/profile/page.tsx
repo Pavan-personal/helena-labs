@@ -74,12 +74,12 @@ export default async function ProfilePage() {
         </code>
       </div>
 
-      <div className="rounded-xl border border-red-950 bg-red-950/20 p-5">
-        <div className="text-xs uppercase tracking-widest text-red-400 mb-3">Danger zone</div>
-        <p className="text-sm text-neutral-400 mb-4">
+      <div className="rounded-xl helena-alert-error p-5">
+        <div className="text-xs uppercase tracking-widest opacity-70 mb-3">Danger zone</div>
+        <p className="text-sm mb-4 opacity-90">
           Signing out only clears your browser session. Your workspace and data stay intact.
         </p>
-        <SignOutButton className="inline-flex items-center px-4 py-2 rounded border border-red-900 text-sm text-red-300 hover:border-red-700 hover:text-red-200 transition-colors">
+        <SignOutButton className="inline-flex items-center px-4 py-2 rounded helena-alert-error text-sm hover:brightness-95 transition-all">
           Sign out of helena
         </SignOutButton>
       </div>

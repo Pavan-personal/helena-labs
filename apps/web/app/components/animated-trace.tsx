@@ -176,9 +176,7 @@ function CitePill({ id, kind = 'inc' }: { id: string; kind?: 'inc' | 'rb' }) {
   return (
     <span
       className={`inline-block font-mono text-[10px] px-1.5 py-0.5 rounded ${
-        kind === 'inc'
-          ? 'bg-sky-950/40 text-sky-300 border border-sky-900/40'
-          : 'bg-emerald-950/40 text-emerald-300 border border-emerald-900/40'
+        kind === 'inc' ? 'helena-chip-inc' : 'helena-chip-rb'
       }`}
     >
       {id}

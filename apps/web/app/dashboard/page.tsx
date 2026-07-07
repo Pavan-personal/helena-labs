@@ -16,7 +16,7 @@ const SEVERITY_STYLES: Record<string, string> = {
   low: 'bg-neutral-900 text-neutral-400 border-neutral-800',
   medium: 'bg-yellow-950 text-yellow-300 border-yellow-900',
   high: 'bg-orange-950 text-orange-300 border-orange-900',
-  critical: 'bg-red-950 text-red-300 border-red-900'
+  critical: 'helena-alert-error'
 };
 
 export default async function DashboardHome() {

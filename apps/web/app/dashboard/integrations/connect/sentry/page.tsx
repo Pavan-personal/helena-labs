@@ -44,12 +44,12 @@ export default async function ConnectSentryPage({
       </div>
 
       {params.err && (
-        <div className="border border-red-950 bg-red-950/30 text-red-300 rounded-lg p-3 mb-6 text-sm">
+        <div className="helena-alert-error rounded-lg p-3 mb-6 text-sm">
           {decodeErr(params.err)}
         </div>
       )}
       {alreadyConnected && (
-        <div className="border border-emerald-950 bg-emerald-950/20 text-emerald-300 rounded-lg p-3 mb-6 text-sm">
+        <div className="helena-alert-success rounded-lg p-3 mb-6 text-sm">
           Already connected to <code>{workspace.sentry_org_slug}</code> with{' '}
           {workspace.sentry_projects?.length ?? 0} project(s). Submitting will replace the
           existing configuration.

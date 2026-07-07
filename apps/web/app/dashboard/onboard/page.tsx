@@ -64,7 +64,7 @@ export default async function OnboardPage({
         </p>
 
         {channels.length === 0 ? (
-          <div className="border border-red-900 bg-red-950 text-red-300 rounded-lg p-4 text-sm">
+          <div className="helena-alert-error rounded-lg p-4 text-sm">
             Could not list {platformName} channels. Check that the bot has permission to see channels.
             {workspace.chat_platform === 'slack' && ' Reinstall the app if scopes changed.'}
           </div>
