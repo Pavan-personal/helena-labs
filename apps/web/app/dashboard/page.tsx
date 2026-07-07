@@ -43,7 +43,7 @@ export default async function DashboardHome() {
         <div className="text-xs uppercase tracking-widest text-neutral-500 mb-1">
           {workspace.chat_platform === 'discord' ? 'Discord server' : 'Slack workspace'}
         </div>
-        <h1 className="text-3xl font-semibold tracking-tight text-white mb-1">
+        <h1 className="text-3xl font-semibold tracking-tight text-app mb-1">
           {workspaceName ?? 'helena workspace'}
         </h1>
         <div className="text-sm text-neutral-500">
@@ -166,7 +166,7 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
   return (
     <div className="rounded-xl border border-neutral-800 p-4 bg-neutral-950/40">
       <div className="text-[10px] uppercase tracking-widest text-neutral-500">{label}</div>
-      <div className="text-2xl font-semibold mt-1 text-white tabular-nums">{value}</div>
+      <div className="text-2xl font-semibold mt-1 text-app tabular-nums">{value}</div>
       {hint && <div className="text-[10px] text-neutral-600 mt-1 truncate">{hint}</div>}
     </div>
   );
@@ -178,7 +178,7 @@ function QuickAction({ label, subtitle, href }: { label: string; subtitle: strin
       href={href}
       className="block rounded-lg border border-neutral-800 hover:border-neutral-700 p-3 bg-neutral-950/40 transition-colors group"
     >
-      <div className="text-sm text-neutral-200 group-hover:text-white">{label}</div>
+      <div className="text-sm text-neutral-200 group-hover:text-app">{label}</div>
       <div className="text-[11px] text-neutral-500 mt-0.5">{subtitle}</div>
     </Link>
   );

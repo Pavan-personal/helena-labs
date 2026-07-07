@@ -44,7 +44,7 @@ export default async function UsagePage({
         <div className="text-xs uppercase tracking-widest text-neutral-500 mb-1">
           Runtime
         </div>
-        <h1 className="text-3xl font-semibold tracking-tight text-white">Usage &amp; cost</h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-app">Usage &amp; cost</h1>
         <p className="text-sm text-neutral-500 mt-1 max-w-2xl">
           Every BTL call helena makes is logged with role, model, token count, and cost. Costs
           are estimated from published per-model rates, so watch the model breakdown to see how
@@ -132,7 +132,7 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
   return (
     <div className="rounded-xl border border-neutral-800 bg-neutral-950/40 p-4">
       <div className="text-[10px] uppercase tracking-widest text-neutral-500">{label}</div>
-      <div className="text-2xl font-semibold mt-1 text-white tabular-nums">{value}</div>
+      <div className="text-2xl font-semibold mt-1 text-app tabular-nums">{value}</div>
       {hint && <div className="text-[10px] text-neutral-600 mt-1">{hint}</div>}
     </div>
   );

@@ -27,7 +27,7 @@ export function DemoConnectPanel({ brand }: { brand: string }) {
       <div className="space-y-2">
         <Link
           href="/"
-          className="flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg bg-white text-neutral-900 text-sm font-medium hover:bg-neutral-100"
+          className="flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg bg-ink text-ink-fg text-sm font-medium hover:bg-neutral-200"
         >
           Install on Slack or Discord
           <ArrowRight className="h-3.5 w-3.5" strokeWidth={2} />
@@ -60,7 +60,7 @@ export function DemoBlockNotice({
     <div className="max-w-xl">
       <div className="mb-8">
         <div className="text-xs uppercase tracking-widest text-neutral-500 mb-1">Demo workspace</div>
-        <h1 className="text-3xl font-semibold tracking-tight text-white mb-2">{title}</h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-app mb-2">{title}</h1>
         <p className="text-sm text-neutral-400 leading-relaxed">{detail}</p>
       </div>
 
@@ -81,7 +81,7 @@ export function DemoBlockNotice({
       <div className="flex flex-wrap gap-3">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-neutral-900 text-sm font-medium hover:bg-neutral-100"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-ink text-ink-fg text-sm font-medium hover:bg-neutral-200"
         >
           Install on Slack or Discord
           <ArrowRight className="h-4 w-4" strokeWidth={2} />

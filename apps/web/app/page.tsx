@@ -18,6 +18,7 @@ import { getWorkspaceFromSession, encodeSessionToken } from '@/lib/session';
 import { LandingSessionCheck } from '@/app/components/session-sync';
 import { AnimatedTrace } from '@/app/components/animated-trace';
 import { IntegrationShowcase } from '@/app/components/integration-showcase';
+import { ThemeToggle } from '@/app/components/theme-toggle';
 import { DEMO_WORKSPACE_ID } from '@/lib/demo';
 
 export const dynamic = 'force-dynamic';
@@ -60,15 +61,18 @@ export default async function Home({
         <nav className="max-w-6xl mx-auto flex items-center justify-between px-6 py-5">
           <div className="flex items-center gap-2">
             <Image src="/logo.png" alt="Helena Labs" width={26} height={26} priority />
-            <span className="text-[15px] font-semibold tracking-tight text-white">Helena Labs</span>
+            <span className="text-[15px] font-semibold tracking-tight text-app">Helena Labs</span>
           </div>
-          <Link
-            href={demoHref}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-md border border-neutral-800 hover:border-neutral-600 text-xs text-neutral-200"
-          >
-            Try live demo
-            <ArrowRight className="h-3 w-3" strokeWidth={2} />
-          </Link>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Link
+              href={demoHref}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-md border border-neutral-800 hover:border-neutral-600 text-xs text-neutral-200"
+            >
+              Try live demo
+              <ArrowRight className="h-3 w-3" strokeWidth={2} />
+            </Link>
+          </div>
         </nav>
 
         {/* HERO */}
@@ -81,7 +85,7 @@ export default async function Home({
                 Incident memory for on-call teams
               </div>
 
-              <h1 className="text-[56px] leading-[1.02] font-semibold tracking-tight text-white mb-6">
+              <h1 className="text-[56px] leading-[1.02] font-semibold tracking-tight text-app mb-6">
                 No team should re-solve
                 <br />
                 <span className="text-neutral-500">the same fire twice.</span>
@@ -108,7 +112,7 @@ export default async function Home({
                 <div className="flex items-center gap-3">
                   <Link
                     href="/dashboard"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-white text-neutral-900 font-medium hover:bg-neutral-100"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-ink text-ink-fg font-medium hover:bg-neutral-200"
                   >
                     Open dashboard
                     <ArrowRight className="h-4 w-4" strokeWidth={2} />
@@ -123,7 +127,7 @@ export default async function Home({
                   <div>
                     <Link
                       href={demoHref}
-                      className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-white text-neutral-900 font-medium hover:bg-neutral-100 shadow-[0_1px_0_rgba(255,255,255,0.15)_inset]"
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-ink text-ink-fg font-medium hover:bg-neutral-200 shadow-[0_1px_0_rgba(255,255,255,0.15)_inset]"
                     >
                       <Sparkles className="h-4 w-4" strokeWidth={2} />
                       Try the live demo
@@ -267,14 +271,14 @@ export default async function Home({
           <div className="rounded-2xl border border-neutral-800 bg-gradient-to-br from-neutral-950 to-neutral-900 p-8 md:p-12 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div>
               <div className="text-xs uppercase tracking-widest text-neutral-500 mb-2">Try it now</div>
-              <div className="text-2xl font-semibold text-white mb-1">See helena on real incidents.</div>
+              <div className="text-2xl font-semibold text-app mb-1">See helena on real incidents.</div>
               <div className="text-sm text-neutral-400 max-w-lg">
                 Explore the seeded demo workspace. Send a Copilot query. Watch the trace stream cite specific incidents.
               </div>
             </div>
             <Link
               href={demoHref}
-              className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-white text-neutral-900 font-medium hover:bg-neutral-100 whitespace-nowrap"
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-ink text-ink-fg font-medium hover:bg-neutral-200 whitespace-nowrap"
             >
               <Sparkles className="h-4 w-4" strokeWidth={2} />
               Open live demo
@@ -295,14 +299,14 @@ function SectionEyebrow({ children }: { children: React.ReactNode }) {
   return <div className="text-[11px] uppercase tracking-widest text-neutral-500 mb-2">{children}</div>;
 }
 function SectionHead({ children }: { children: React.ReactNode }) {
-  return <h2 className="text-[28px] md:text-[32px] leading-tight font-semibold tracking-tight text-white max-w-2xl">{children}</h2>;
+  return <h2 className="text-[28px] md:text-[32px] leading-tight font-semibold tracking-tight text-app max-w-2xl">{children}</h2>;
 }
 
 function StepCard({ n, title, body }: { n: string; title: string; body: string }) {
   return (
     <div className="rounded-xl border border-neutral-800 bg-neutral-950/40 p-6 hover:border-neutral-700 transition-colors">
       <div className="text-[11px] uppercase tracking-widest text-neutral-600 mb-3 font-mono">{n}</div>
-      <div className="text-base font-semibold text-white mb-2">{title}</div>
+      <div className="text-base font-semibold text-app mb-2">{title}</div>
       <div className="text-sm text-neutral-400 leading-relaxed">{body}</div>
     </div>
   );
@@ -324,7 +328,7 @@ function TechCard({ icon, title, body }: { icon: React.ReactNode; title: string;
   return (
     <div className="rounded-xl border border-neutral-800 bg-neutral-950/40 p-6 hover:border-neutral-700 transition-colors">
       <div className="mb-3">{icon}</div>
-      <div className="text-sm font-semibold text-white mb-2">{title}</div>
+      <div className="text-sm font-semibold text-app mb-2">{title}</div>
       <div className="text-[13px] text-neutral-400 leading-relaxed">{body}</div>
     </div>
   );

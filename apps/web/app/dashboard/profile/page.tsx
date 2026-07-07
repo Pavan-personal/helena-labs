@@ -18,7 +18,7 @@ export default async function ProfilePage() {
     <div>
       <div className="mb-8">
         <div className="text-xs uppercase tracking-widest text-neutral-500 mb-1">Account</div>
-        <h1 className="text-3xl font-semibold tracking-tight text-white mb-1">Profile</h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-app mb-1">Profile</h1>
         <p className="text-sm text-neutral-500">
           Who is installed, where the workspace lives, and how to sign out.
         </p>

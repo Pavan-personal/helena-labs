@@ -33,7 +33,7 @@ export default async function ConnectSentryPage({
         <div className="text-xs uppercase tracking-widest text-neutral-500 mb-1">
           Connect · Sentry
         </div>
-        <h1 className="text-3xl font-semibold tracking-tight text-white mb-2">
+        <h1 className="text-3xl font-semibold tracking-tight text-app mb-2">
           Connect your Sentry organization
         </h1>
         <p className="text-sm text-neutral-500 max-w-2xl">
@@ -113,7 +113,7 @@ export default async function ConnectSentryPage({
               <div className="pt-2 flex items-center gap-3">
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 rounded-lg bg-white text-neutral-900 text-sm font-medium hover:bg-neutral-100"
+                  className="flex-1 px-4 py-2 rounded-lg bg-ink text-ink-fg text-sm font-medium hover:bg-neutral-200"
                 >
                   Verify and connect
                 </button>

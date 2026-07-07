@@ -95,7 +95,7 @@ export default async function IncidentDetailPage({
             INC-{incident.id.slice(0, 6)}
           </span>
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight text-white mb-2">
+        <h1 className="text-2xl font-semibold tracking-tight text-app mb-2">
           {incident.title}
         </h1>
         <div className="text-xs text-neutral-500 flex flex-wrap items-center gap-x-4 gap-y-1">

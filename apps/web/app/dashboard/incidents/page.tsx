@@ -37,7 +37,7 @@ export default async function IncidentsPage({
     <div>
       <div className="mb-6">
         <div className="text-xs uppercase tracking-widest text-neutral-500 mb-1">Memory</div>
-        <h1 className="text-3xl font-semibold tracking-tight text-white">Incidents</h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-app">Incidents</h1>
         <p className="text-sm text-neutral-500 mt-1">
           Every message, alert, and event indexed for retrieval. Click any row for the full context.
         </p>
@@ -75,7 +75,7 @@ export default async function IncidentsPage({
                   <span className="text-[10px] text-neutral-600 font-mono">
                     INC-{i.id.slice(0, 6)}
                   </span>
-                  <div className="text-sm font-medium text-neutral-100 flex-1 truncate group-hover:text-white">
+                  <div className="text-sm font-medium text-neutral-100 flex-1 truncate group-hover:text-app">
                     {i.title}
                   </div>
                   <span className="text-[10px] text-neutral-600 shrink-0 tabular-nums">

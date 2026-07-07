@@ -219,7 +219,7 @@ export function IntegrationShowcase() {
               onClick={() => jumpTo(i)}
               className={`text-[13px] px-3.5 py-1.5 rounded-full border ${
                 active
-                  ? 'bg-white text-neutral-900 border-white'
+                  ? 'bg-ink text-ink-fg border-ink'
                   : 'border-neutral-800 text-neutral-400 hover:text-neutral-200 hover:border-neutral-600'
               }`}
             >

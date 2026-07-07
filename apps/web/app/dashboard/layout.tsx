@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { requireWorkspace, encodeSessionToken } from '@/lib/session';
 import { SessionSync, SignOutButton } from '@/app/components/session-sync';
+import { ThemeToggle } from '@/app/components/theme-toggle';
 
 export const dynamic = 'force-dynamic';
 
@@ -67,7 +68,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
                 className="h-9 w-9 object-contain"
                 priority
               />
-              <span className="text-lg font-semibold tracking-tight text-white">Helena Labs</span>
+              <span className="text-lg font-semibold tracking-tight text-app">Helena Labs</span>
             </Link>
             <div className="flex items-center gap-2.5 p-2.5 rounded-lg border border-neutral-800 bg-neutral-900/60">
               <div
@@ -98,7 +99,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
               <Link
                 key={href}
                 href={withToken(href)}
-                className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-neutral-400 hover:bg-neutral-900 hover:text-white transition-colors"
+                className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-neutral-400 hover:bg-neutral-900 hover:text-app transition-colors"
               >
                 <Icon className="h-4 w-4 shrink-0" strokeWidth={1.75} />
                 <span>{label}</span>
@@ -112,9 +113,12 @@ export default async function DashboardLayout({ children }: { children: ReactNod
                 {workspace.installer_email}
               </div>
             )}
-            <SignOutButton className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors">
-              Sign out
-            </SignOutButton>
+            <div className="flex items-center justify-between">
+              <SignOutButton className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors">
+                Sign out
+              </SignOutButton>
+              <ThemeToggle />
+            </div>
           </div>
         </aside>
         <main className="h-screen overflow-y-auto scrollbar-none">

@@ -37,7 +37,7 @@ export default async function IntegrationsPage({
         <div className="text-xs uppercase tracking-widest text-neutral-500 mb-1">
           Configuration
         </div>
-        <h1 className="text-3xl font-semibold tracking-tight text-white mb-2">Integrations</h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-app mb-2">Integrations</h1>
         <p className="text-sm text-neutral-500 max-w-2xl">
           Wire helena into your team&rsquo;s tools. One-click install where the vendor supports
           it, token-based connect where they don&rsquo;t.

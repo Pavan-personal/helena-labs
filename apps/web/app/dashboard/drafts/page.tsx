@@ -36,7 +36,7 @@ export default async function DraftsPage() {
               <div className="flex gap-3 mt-4">
                 <form action={approveDraftAction}>
                   <input type="hidden" name="draftId" value={d.id} />
-                  <button className="px-3 py-1.5 rounded bg-green-600 text-white text-sm hover:bg-green-500">
+                  <button className="px-3 py-1.5 rounded bg-green-600 text-app text-sm hover:bg-green-500">
                     Approve
                   </button>
                 </form>

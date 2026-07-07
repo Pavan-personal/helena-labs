@@ -33,7 +33,7 @@ export function IntegrationWalkthrough({
               {s.n}
             </div>
             <div className="min-w-0 pt-0.5">
-              <div className="text-sm font-semibold text-white leading-tight mb-1">
+              <div className="text-sm font-semibold text-app leading-tight mb-1">
                 {s.title}
               </div>
               <div className="text-[13px] text-neutral-400 leading-relaxed">{s.detail}</div>
@@ -142,7 +142,7 @@ export function MockButton({
     <span
       className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-[11px] ${
         primary
-          ? 'bg-white text-neutral-900 font-medium'
+          ? 'bg-ink text-ink-fg font-medium'
           : 'border border-neutral-800 text-neutral-300'
       }`}
     >

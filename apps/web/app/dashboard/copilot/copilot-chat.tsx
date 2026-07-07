@@ -356,7 +356,7 @@ export function CopilotChat({
                 <img src={a.previewUrl} alt={a.name} className="h-full w-full object-cover" />
                 {a.uploading && (
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                    <Loader2 className="h-4 w-4 animate-spin text-white/90" />
+                    <Loader2 className="h-4 w-4 animate-spin text-app/90" />
                   </div>
                 )}
                 <button
@@ -446,7 +446,7 @@ export function CopilotChat({
                 attachments.some((a) => a.uploading) ||
                 (!input.trim() && attachments.length === 0)
               }
-              className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-lg bg-white text-neutral-900 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-neutral-100"
+              className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-lg bg-ink text-ink-fg flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-neutral-200"
               aria-label="Send"
             >
               {sending ? (
@@ -642,7 +642,7 @@ function AssistantBubble({
                 `Draft a blameless post-mortem based on ${ids || 'the incidents you just cited'}. Include symptom, detection, diagnosis steps, resolution, and prevention.`
               );
             }}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-neutral-800 text-[11px] text-neutral-300 hover:border-neutral-600 hover:text-white"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-neutral-800 text-[11px] text-neutral-300 hover:border-neutral-600 hover:text-app"
           >
             <ScrollText className="h-3 w-3" strokeWidth={1.75} />
             Generate post-mortem
@@ -658,7 +658,7 @@ function AssistantBubble({
                 `Write a 4-line exec brief for the CEO/CTO covering ${ids || 'these incidents'}. No jargon. Business impact first, then technical summary, then what we did, then risk of recurrence.`
               );
             }}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-neutral-800 text-[11px] text-neutral-300 hover:border-neutral-600 hover:text-white"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-neutral-800 text-[11px] text-neutral-300 hover:border-neutral-600 hover:text-app"
           >
             <FileSpreadsheet className="h-3 w-3" strokeWidth={1.75} />
             Exec brief
@@ -691,7 +691,7 @@ function ChatMarkdown({ text, token }: { text: string; token: string }) {
           <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>
         ),
         strong: ({ children }) => (
-          <strong className="font-semibold text-white">{children}</strong>
+          <strong className="font-semibold text-app">{children}</strong>
         ),
         em: ({ children }) => <em className="italic text-neutral-200">{children}</em>,
         ul: ({ children }) => (
@@ -729,8 +729,8 @@ function ChatMarkdown({ text, token }: { text: string; token: string }) {
             </a>
           );
         },
-        h1: ({ children }) => <h3 className="text-white font-semibold text-base mt-2 mb-1">{children}</h3>,
-        h2: ({ children }) => <h3 className="text-white font-semibold text-sm mt-2 mb-1">{children}</h3>,
+        h1: ({ children }) => <h3 className="text-app font-semibold text-base mt-2 mb-1">{children}</h3>,
+        h2: ({ children }) => <h3 className="text-app font-semibold text-sm mt-2 mb-1">{children}</h3>,
         h3: ({ children }) => <h4 className="text-neutral-100 font-semibold text-sm mt-2 mb-1">{children}</h4>
       }}
     >

@@ -11,7 +11,7 @@ export default function DashboardNotFound() {
       </div>
       <Link
         href="/dashboard"
-        className="inline-block px-4 py-2 rounded-lg bg-white text-neutral-900 text-sm font-medium hover:bg-neutral-100"
+        className="inline-block px-4 py-2 rounded-lg bg-ink text-ink-fg text-sm font-medium hover:bg-neutral-200"
       >
         Back to overview
       </Link>

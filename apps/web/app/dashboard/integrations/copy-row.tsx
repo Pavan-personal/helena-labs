@@ -25,7 +25,7 @@ export function CopyRow({ label, value }: { label: string; value: string }) {
         <button
           type="button"
           onClick={copy}
-          className="shrink-0 px-3 py-2 rounded-lg border border-neutral-800 text-xs text-neutral-300 hover:border-neutral-600 hover:text-white transition-colors"
+          className="shrink-0 px-3 py-2 rounded-lg border border-neutral-800 text-xs text-neutral-300 hover:border-neutral-600 hover:text-app transition-colors"
         >
           {copied ? 'Copied' : 'Copy'}
         </button>

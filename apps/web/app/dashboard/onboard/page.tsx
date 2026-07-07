@@ -101,7 +101,7 @@ export default async function OnboardPage({
             </div>
             <button
               type="submit"
-              className="w-full px-5 py-2.5 rounded bg-white text-black font-medium hover:bg-neutral-200"
+              className="w-full px-5 py-2.5 rounded bg-ink text-ink-fg font-medium hover:bg-neutral-200"
             >
               Select channel and continue
             </button>

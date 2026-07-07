@@ -20,7 +20,7 @@ export default async function RunbooksPage({
     <div>
       <div className="mb-6">
         <div className="text-xs uppercase tracking-widest text-neutral-500 mb-1">Memory</div>
-        <h1 className="text-3xl font-semibold tracking-tight text-white">Runbooks</h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-app">Runbooks</h1>
         <p className="text-sm text-neutral-500 mt-1">
           Permanent, approved knowledge. Drafts get here after review.
         </p>
@@ -57,7 +57,7 @@ export default async function RunbooksPage({
                   <BookOpen className="h-4 w-4 text-neutral-400" strokeWidth={1.75} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-neutral-100 group-hover:text-white line-clamp-2">
+                  <div className="text-sm font-medium text-neutral-100 group-hover:text-app line-clamp-2">
                     {r.title}
                   </div>
                   <div className="text-[10px] text-neutral-600 mt-1 font-mono">
