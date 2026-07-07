@@ -252,25 +252,7 @@ function summarizeResult(name: string, result: unknown): { text: string; count?:
   if ('error' in obj) return { text: `error: ${String(obj.error).slice(0, 120)}` };
   if (name === 'search_incidents' || name === 'list_recent_incidents') {
     const count = Number(obj.count ?? 0);
-    const retrieval = obj.retrieval as
-      | {
-          source?: string;
-          latency_ms?: number;
-          retain_hits?: number;
-          retain_failure?: string;
-          retain_detail?: string;
-        }
-      | undefined;
-    let via = '';
-    if (retrieval?.source === 'retaindb') {
-      via = ` via RetainDB (${retrieval.latency_ms}ms)`;
-    } else if (retrieval?.source === 'postgres_fts') {
-      const hint = retrieval.retain_failure
-        ? ` [retain: ${retrieval.retain_failure}${retrieval.retain_detail ? ` — ${retrieval.retain_detail}` : ''}]`
-        : ` [retain: ${retrieval.retain_hits ?? 0} hits]`;
-      via = ` via Postgres FTS${hint}`;
-    }
-    return { text: `${count} incident${count === 1 ? '' : 's'}${via}`, count };
+    return { text: `${count} incident${count === 1 ? '' : 's'}`, count };
   }
   if (name === 'get_incident') {
     return { text: `${obj.title ?? 'incident'} · ${obj.severity ?? '?'}` };

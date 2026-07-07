@@ -26,7 +26,7 @@ const SCRIPT: Array<{ delay: number; step: Step }> = [
   { delay: 300, step: { kind: 'model', model: 'btl-2', reason: 'main loop (DEEP_REASON)' } },
   { delay: 350, step: { kind: 'status', label: 'Reasoned across memory' } },
   { delay: 450, step: { kind: 'tool_call', name: 'search_incidents', args: '{"query":"redis"}' } },
-  { delay: 700, step: { kind: 'tool_result', text: '3 incidents via RetainDB (89ms)' } },
+  { delay: 700, step: { kind: 'tool_result', text: '3 incidents matched (47ms)' } },
   { delay: 350, step: { kind: 'status', label: 'Citations validated' } },
   { delay: 500, step: { kind: 'answer' } }
 ];

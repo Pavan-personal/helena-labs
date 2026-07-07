@@ -24,44 +24,7 @@ export async function insertIncident(
     .single();
 
   if (error || !data) throw new Error(`Insert incident failed: ${error?.message}`);
-  const row = data as IncidentRow;
-
-  // Mirror to RetainDB so the Copilot's hybrid retrieval sees new incidents
-  // immediately. Fire-and-forget: never block ingest on the memory layer.
-  rememberIncidentInRetain(workspaceId, row).catch((e) => {
-    console.error('retaindb remember failed:', e);
-  });
-
-  return row;
-}
-
-async function rememberIncidentInRetain(workspaceId: string, row: IncidentRow): Promise<void> {
-  const key = process.env.RETAINDB_API_KEY;
-  if (!key) return;
-  const content = `[INC:${row.id}] ${row.title}\nSeverity: ${row.severity}. Source: ${row.source}.${row.channel ? ` Channel: #${row.channel}.` : ''}\n${(row.body ?? '').slice(0, 2000)}`;
-  // Use the official SDK so the RetainDB Cloudflare WAF sees the
-  // x-sdk-version / x-sdk-runtime headers and lets the request through.
-  // Raw fetch from Vercel egress gets a "Just a moment..." challenge.
-  try {
-    const { RetainDBClient } = await import('@retaindb/sdk');
-    const client = new RetainDBClient({ apiKey: key, environment: 'local' });
-    const runtime = (client as unknown as { runtimeClient: {
-      request: (opts: {
-        endpoint: string;
-        method: string;
-        operation?: string;
-        body?: unknown;
-      }) => Promise<{ data: unknown }>;
-    } }).runtimeClient;
-    await runtime.request({
-      endpoint: '/v1/memory',
-      method: 'POST',
-      operation: 'writeAck',
-      body: { project: workspaceId, content, memory_type: 'fact' }
-    });
-  } catch (e) {
-    console.error('retaindb ingest remember failed:', e instanceof Error ? e.message : e);
-  }
+  return data as IncidentRow;
 }
 
 export async function findSimilarByDedup(

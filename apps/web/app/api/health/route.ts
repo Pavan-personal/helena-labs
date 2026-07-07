@@ -32,7 +32,6 @@ export async function GET() {
       commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 8) ?? 'local',
       region: process.env.VERCEL_REGION ?? 'unknown',
       env_seen: {
-        retaindb: Boolean(process.env.RETAINDB_API_KEY),
         btl: Boolean(process.env.BTL_API_KEY),
         supabase: Boolean(process.env.SUPABASE_URL)
       }

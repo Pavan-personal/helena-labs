@@ -247,7 +247,7 @@ export default async function Home({
             <TechCard
               icon={<Search className="h-5 w-5 text-neutral-300" strokeWidth={1.5} />}
               title="Hybrid retrieval"
-              body="RetainDB memory layer as primary retriever. Postgres full-text search as instant fallback. Same incident indexed both places, best result wins."
+              body="Postgres full-text search over a workspace-scoped incident index with weighted fields (title, body, screenshot captions). GIN-indexed tsvector so lookups stay under 50ms even as the corpus grows."
             />
             <TechCard
               icon={<FileText className="h-5 w-5 text-neutral-300" strokeWidth={1.5} />}
@@ -352,7 +352,7 @@ function TraceMockup() {
         <TracePill model="btl-2" reason="main loop (DEEP_REASON)" />
         <TraceLine kind="done" text="Reasoned across memory" />
         <TraceTool name="search_incidents" args={`{"query":"redis"}`} />
-        <TraceResult text="3 incidents via RetainDB (89ms)" />
+        <TraceResult text="3 incidents matched (47ms)" />
         <TraceLine kind="done" text="Citations validated" />
       </div>
 
