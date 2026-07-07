@@ -18,6 +18,7 @@ import { getWorkspaceFromSession, encodeSessionToken } from '@/lib/session';
 import { LandingSessionCheck } from '@/app/components/session-sync';
 import { AnimatedTrace } from '@/app/components/animated-trace';
 import { IntegrationShowcase } from '@/app/components/integration-showcase';
+import { HeroVideo } from '@/app/components/hero-video';
 import { DEMO_WORKSPACE_ID } from '@/lib/demo';
 
 export const dynamic = 'force-dynamic';
@@ -175,6 +176,20 @@ export default async function Home({
               <AnimatedTrace />
             </div>
           </div>
+        </section>
+
+        {/* LIVE DEMO VIDEO */}
+        <section id="demo" className="max-w-5xl mx-auto px-6 pt-20 pb-8">
+          <div className="mb-6 text-center">
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full border border-neutral-800 bg-neutral-950/60 text-[11px] uppercase tracking-widest text-neutral-500">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Live product
+            </div>
+            <h2 className="mt-4 text-[28px] md:text-[32px] leading-tight font-semibold tracking-tight text-app">
+              Discord slash command. Dashboard Copilot. One memory.
+            </h2>
+          </div>
+          <HeroVideo src="/demo.mp4" />
         </section>
 
         {/* HOW IT WORKS */}
