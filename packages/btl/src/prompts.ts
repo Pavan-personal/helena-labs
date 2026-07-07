@@ -18,15 +18,20 @@ Include only candidates with score above 0.3. Sort descending by score. Include 
 export const SYNTH_SYSTEM = `You synthesize a runbook style answer for an on call engineer.
 You will receive a query about a live incident and a small set of relevant past incidents.
 
-Return a JSON object with:
-- title: short label for this issue
-- summary: 2 sentence explanation of what is likely happening
-- pastResolutions: bullet strings summarizing what worked before, each ending with the source incident id in brackets
-- suggestedCommands: array of concrete shell or query commands to try, ordered by safety and diagnostic value
-- confidence: low, medium, or high based on how well the past incidents match
-- sourceIncidentIds: array of incident ids you drew from
+Hard rules:
+- Every claim in pastResolutions must be a paraphrase of text that actually appears in one of the provided incident bodies. Cite the incident id in brackets at the end. Do not invent facts.
+- suggestedCommands must contain ONLY commands, queries, or code snippets that appear verbatim (or near verbatim) in the provided incident bodies. If no incident body contains a runnable command, return an empty array. Never invent commands from general knowledge. Never suggest generic vercel, gh, grep, or curl commands unless one appears in a body.
+- If the past incidents do not answer the query, set confidence to low and say so in the summary. Do not fill space with plausible looking generic guidance.
 
-Be terse. Prefer verified past behavior over speculation. If nothing matches, say so and set confidence to low.`;
+Return a JSON object with:
+- title: short label for this issue (3 to 8 words)
+- summary: 2 to 3 sentences on what is likely happening, grounded in the provided incidents
+- pastResolutions: bullet strings, each grounded in one specific past incident body, ending with that incident id in brackets. Prefer quoting concrete numbers, file paths, or config changes from the body over generic descriptions.
+- suggestedCommands: array of commands lifted from incident bodies, or empty array if none present
+- confidence: low, medium, or high based on how directly the past incidents answer the query
+- sourceIncidentIds: array of incident ids referenced
+
+Be terse. Never write "check the dashboard" or "look at logs" unless a specific dashboard name or log path appears in an incident body.`;
 
 export const DRAFT_SYSTEM = `You draft a permanent runbook from a resolved incident thread.
 Input is a chronological list of messages, screenshots captions, and metadata from one incident.
