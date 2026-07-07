@@ -67,8 +67,12 @@ export async function runToolLoop(input: RunLoopInput): Promise<RunLoopResult> {
         temperature: cfg.temperature,
         tools: TOOL_DEFS,
         tool_choice: 'auto',
-        messages
-      });
+        messages,
+        // DeepSeek v4-pro emits reasoning_content in thinking mode; if we
+        // don't echo it back on the next turn the API 400s. Simpler to
+        // disable thinking for the tool-use loop entirely.
+        ...({ enable_thinking: false } as Record<string, unknown>)
+      } as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming);
     } catch (e) {
       console.error('btl chat call failed:', e);
       finalText = `Sorry, the model call failed: ${e instanceof Error ? e.message : 'unknown'}. Try again.`;
@@ -171,8 +175,9 @@ export async function runToolLoop(input: RunLoopInput): Promise<RunLoopResult> {
         messages: [
           ...messages,
           { role: 'system', content: CITATION_RETRY_PROMPT + notes }
-        ]
-      });
+        ],
+        ...({ enable_thinking: false } as Record<string, unknown>)
+      } as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming);
       tokensIn += retryResp.usage?.prompt_tokens ?? 0;
       tokensOut += retryResp.usage?.completion_tokens ?? 0;
       const retryText = retryResp.choices[0]?.message?.content ?? '';

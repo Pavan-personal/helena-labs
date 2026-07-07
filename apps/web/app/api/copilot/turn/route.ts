@@ -50,8 +50,14 @@ export async function POST(req: Request) {
   }
   const userText = (body.userText ?? '').trim();
   const turnId = (body.turnId ?? '').trim();
-  if (!userText || !turnId) {
-    return NextResponse.json({ error: 'missing userText or turnId' }, { status: 400 });
+  const attachmentIds = body.attachmentIds ?? [];
+  if (!turnId) {
+    return NextResponse.json({ error: 'missing turnId' }, { status: 400 });
+  }
+  // Allow empty text only when the user attached one or more screenshots —
+  // vision consensus alone is enough to trigger a turn.
+  if (!userText && attachmentIds.length === 0) {
+    return NextResponse.json({ error: 'need text or an attachment' }, { status: 400 });
   }
 
   // Cost DoS guard: reject if this workspace already has too many turns in flight.
@@ -115,7 +121,14 @@ export async function POST(req: Request) {
     }
   }
 
-  const attachmentIds = body.attachmentIds ?? [];
+  // If the user only sent an attachment, give the model a stand-in prompt
+  // so it has something concrete to reason about. Stored in the DB as-is
+  // so history shows the same phrasing on reload.
+  const effectiveUserText =
+    userText ||
+    (attachmentIds.length > 0
+      ? 'Look at this screenshot. Identify what it shows and correlate it with any past incidents that match.'
+      : '');
 
   // Persist user message and link attachments so reload can show them.
   const userMsg = await insertMessage({
@@ -123,7 +136,7 @@ export async function POST(req: Request) {
     workspaceId: workspace.id,
     turnId,
     role: 'user',
-    content: userText,
+    content: effectiveUserText,
     pinnedRefIds: body.pinnedRefIds ?? []
   });
   if (attachmentIds.length > 0) {
@@ -241,7 +254,7 @@ export async function POST(req: Request) {
       const initialMessages: ChatMessage[] = [
         { role: 'system', content: MAIN_SYSTEM_PROMPT },
         ...priorConvo,
-        { role: 'user', content: userText }
+        { role: 'user', content: effectiveUserText }
       ];
 
       // If we ran vision consensus, inject its result as an assistant/tool pair
