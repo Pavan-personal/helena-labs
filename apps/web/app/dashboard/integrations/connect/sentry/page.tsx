@@ -10,6 +10,7 @@ import {
   MockCheckbox,
   type WalkStep
 } from '@/app/components/integration-walkthrough';
+import { CopyInline } from '@/app/components/copy-inline';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +24,8 @@ export default async function ConnectSentryPage({
   const token = encodeSessionToken(workspace.id);
   const isDemo = isDemoWorkspace(workspace.id);
   const alreadyConnected = Boolean(workspace.sentry_org_slug && workspace.sentry_token);
+  const webhookUrl = `https://helenalabs.vercel.app/api/errors/sentry/${workspace.webhook_secret}`;
+  const SENTRY_STEPS = buildSentrySteps(webhookUrl);
 
   return (
     <div>
@@ -148,7 +151,8 @@ function decodeErr(err: string): string {
   }
 }
 
-const SENTRY_STEPS: WalkStep[] = [
+function buildSentrySteps(webhookUrl: string): WalkStep[] {
+  return [
   {
     n: '01',
     title: 'Open Sentry Settings',
@@ -232,28 +236,34 @@ const SENTRY_STEPS: WalkStep[] = [
   },
   {
     n: '04',
-    title: 'Enable webhook subscription for Alert Rule Action',
+    title: 'Set the Webhook URL to helena',
     detail: (
       <>
-        Still on the same form, scroll to{' '}
-        <span className="text-neutral-200">Webhooks</span> and toggle on{' '}
-        <span className="text-neutral-200">Alert Rule Action</span>. This is what lets helena
-        appear as a target when you create Sentry alert rules.
+        Still on the same form, set the{' '}
+        <span className="text-neutral-200">Webhook URL</span> to the exact URL below and toggle
+        on <span className="text-neutral-200">Alert Rule Action</span> under Webhooks. That URL
+        is unique to your workspace — do not share it.
+        <div className="mt-3">
+          <CopyInline value={webhookUrl} />
+        </div>
       </>
     ),
     visual: (
       <MockChrome vendor="Sentry" brand="#c9a6ff" path="/settings/developer-settings/new-internal">
-        <div className="space-y-2">
-          <div className="text-[10px] uppercase tracking-widest text-neutral-500 mb-1">
-            Webhooks
+        <div className="space-y-3">
+          <MockField label="Webhook URL" value={webhookUrl.slice(0, 44) + '...'} highlight />
+          <div>
+            <div className="text-[10px] uppercase tracking-widest text-neutral-500 mb-1">
+              Webhooks
+            </div>
+            <div className="grid grid-cols-2 gap-1.5">
+              <MockCheckbox label="Issue" />
+              <MockCheckbox label="Error" />
+              <MockCheckbox label="Comment" />
+              <MockCheckbox label="Alert Rule Action" checked />
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-1.5">
-            <MockCheckbox label="Issue" />
-            <MockCheckbox label="Error" />
-            <MockCheckbox label="Comment" />
-            <MockCheckbox label="Alert Rule Action" checked />
-          </div>
-          <div className="pt-2">
+          <div className="pt-1">
             <MockButton primary>Save Changes</MockButton>
           </div>
         </div>
@@ -305,3 +315,4 @@ const SENTRY_STEPS: WalkStep[] = [
     )
   }
 ];
+}
