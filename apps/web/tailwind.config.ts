@@ -22,7 +22,7 @@ const config: Config = {
           950: 'rgb(var(--neutral-950) / <alpha-value>)'
         },
         app: {
-          DEFAULT: 'rgb(var(--app-bg) / <alpha-value>)',
+          DEFAULT: 'rgb(var(--app-text) / <alpha-value>)',
           bg: 'rgb(var(--app-bg) / <alpha-value>)',
           card: 'rgb(var(--app-card) / <alpha-value>)',
           border: 'rgb(var(--app-border) / <alpha-value>)',
