@@ -217,6 +217,20 @@ export function CopilotChat({
           })
         });
         if (!res.ok || !res.body) {
+          // 409 means our client already sent this turnId (network retry,
+          // double-click). Refetch the thread so the completed reply from
+          // the first request shows up instead of leaving the bubble stuck.
+          if (res.status === 409 && threadIdRef.current) {
+            try {
+              const r = await fetch(`/api/copilot/threads/${threadIdRef.current}/messages`);
+              if (r.ok) {
+                const { messages } = (await r.json()) as { messages: HydratedMessage[] };
+                setTurns(rebuildTurns(messages));
+                return;
+              }
+            } catch {}
+          }
+
           let humanError: string;
           const raw = await res.text().catch(() => '');
           if (res.status === 429) {
@@ -224,7 +238,7 @@ export function CopilotChat({
           } else if (res.status === 401) {
             humanError = 'Session expired. Reload the page to sign in again.';
           } else if (res.status === 409) {
-            humanError = 'This message was already sent. Refresh to see the reply.';
+            humanError = 'This message was already sent. Reload the page to see the reply.';
           } else if (res.status >= 500) {
             humanError = `Server error (${res.status}). Retry in a moment.`;
           } else {
@@ -364,6 +378,7 @@ export function CopilotChat({
             e.preventDefault();
             const text = input.trim();
             if (!text && attachments.length === 0) return;
+            if (attachments.some((a) => a.uploading)) return;
             setInput('');
             sendMessage(text);
           }}
@@ -389,6 +404,7 @@ export function CopilotChat({
                   e.preventDefault();
                   const text = input.trim();
                   if (!text && attachments.length === 0) return;
+                  if (attachments.some((a) => a.uploading)) return;
                   setInput('');
                   sendMessage(text);
                 }
@@ -425,7 +441,11 @@ export function CopilotChat({
             </button>
             <button
               type="submit"
-              disabled={sending || (!input.trim() && attachments.length === 0)}
+              disabled={
+                sending ||
+                attachments.some((a) => a.uploading) ||
+                (!input.trim() && attachments.length === 0)
+              }
               className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-lg bg-white text-neutral-900 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-neutral-100"
               aria-label="Send"
             >

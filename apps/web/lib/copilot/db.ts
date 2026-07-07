@@ -219,7 +219,7 @@ export async function attachmentsForMessages(
   for (const r of rows) {
     const { data: signed } = await db.storage
       .from('copilot-uploads')
-      .createSignedUrl(r.storage_path, 60 * 60);
+      .createSignedUrl(r.storage_path, 60 * 60 * 24);
     if (!signed?.signedUrl) continue;
     const list = out.get(r.message_id) ?? [];
     list.push({
@@ -241,11 +241,18 @@ export async function attachmentsForMessages(
 export async function countInflightTurns(workspaceId: string): Promise<number> {
   try {
     const db = getServerClient();
+    // Only count "running" turns that STARTED in the last 5 minutes. Any
+    // running row older than that is presumed dead — the Vercel function
+    // was killed by maxDuration before the finally block could finalize.
+    // Without this window, stuck turns accumulate silently and eventually
+    // block every future send from the same workspace.
+    const cutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString();
     const { count, error } = await db
       .from('copilot_turns')
       .select('turn_id', { count: 'exact', head: true })
       .eq('workspace_id', workspaceId)
-      .eq('status', 'running');
+      .eq('status', 'running')
+      .gte('started_at', cutoff);
     if (error) return 0;
     return count ?? 0;
   } catch {

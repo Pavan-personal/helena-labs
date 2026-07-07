@@ -105,40 +105,52 @@ export async function POST(req: Request) {
     );
   }
 
-  // Rename thread on first message
-  if (isFirstMessageInThread) {
-    await renameThreadFromFirstMessage(threadId, userText);
-  }
-
-  // Load prior conversation for context (excluding status/tool_* rows)
-  const priorAll = await listMessages(threadId, 0);
-  const priorConvo: ChatMessage[] = [];
-  for (const m of priorAll) {
-    if (m.role === 'user' && m.content) {
-      priorConvo.push({ role: 'user', content: m.content });
-    } else if (m.role === 'assistant' && m.content) {
-      priorConvo.push({ role: 'assistant', content: m.content });
+  // If ANY of the pre-stream setup throws we must still finalize the turn
+  // so it doesn't sit in 'running' forever. Wrap every step here in a
+  // try/catch that flips the row to 'error' before returning to the client.
+  let effectiveUserText: string;
+  let priorConvo: ChatMessage[];
+  let userMsg: Awaited<ReturnType<typeof insertMessage>>;
+  try {
+    if (isFirstMessageInThread) {
+      await renameThreadFromFirstMessage(threadId, userText || 'Screenshot analysis');
     }
+
+    const priorAll = await listMessages(threadId, 0);
+    priorConvo = [];
+    for (const m of priorAll) {
+      if (m.role === 'user' && m.content) {
+        priorConvo.push({ role: 'user', content: m.content });
+      } else if (m.role === 'assistant' && m.content) {
+        priorConvo.push({ role: 'assistant', content: m.content });
+      }
+    }
+
+    effectiveUserText =
+      userText ||
+      (attachmentIds.length > 0
+        ? 'Look at this screenshot. Identify what it shows and correlate it with any past incidents that match.'
+        : '');
+
+    userMsg = await insertMessage({
+      threadId,
+      workspaceId: workspace.id,
+      turnId,
+      role: 'user',
+      content: effectiveUserText,
+      pinnedRefIds: body.pinnedRefIds ?? []
+    });
+  } catch (setupErr) {
+    console.error('[copilot turn] pre-stream setup failed:', setupErr);
+    await finalizeTurn({ turnId, status: 'error' }).catch(() => {});
+    return NextResponse.json(
+      {
+        error: 'setup failed, try again',
+        detail: setupErr instanceof Error ? setupErr.message.slice(0, 160) : 'unknown'
+      },
+      { status: 500 }
+    );
   }
-
-  // If the user only sent an attachment, give the model a stand-in prompt
-  // so it has something concrete to reason about. Stored in the DB as-is
-  // so history shows the same phrasing on reload.
-  const effectiveUserText =
-    userText ||
-    (attachmentIds.length > 0
-      ? 'Look at this screenshot. Identify what it shows and correlate it with any past incidents that match.'
-      : '');
-
-  // Persist user message and link attachments so reload can show them.
-  const userMsg = await insertMessage({
-    threadId,
-    workspaceId: workspace.id,
-    turnId,
-    role: 'user',
-    content: effectiveUserText,
-    pinnedRefIds: body.pinnedRefIds ?? []
-  });
   if (attachmentIds.length > 0) {
     await linkAttachmentsToMessage(userMsg.id, attachmentIds);
   }
@@ -165,7 +177,21 @@ export async function POST(req: Request) {
           reason: 'vision consensus B'
         });
         const dataUrls = await fetchAttachmentsAsDataUrls(workspace.id, attachmentIds);
-        if (dataUrls.length > 0) {
+        if (dataUrls.length === 0) {
+          // Attachment ids were sent but none downloaded from Storage —
+          // surface it instead of silently answering as if no image existed.
+          sse.write({
+            type: 'error',
+            code: 'attachment_missing',
+            message: 'The screenshot could not be loaded. Try uploading it again.',
+            recoverable: true
+          });
+          await finalizeTurn({ turnId, status: 'error' });
+          clearInterval(keepaliveHandle);
+          sse.close();
+          return;
+        }
+        {
           const visionId = crypto.randomUUID();
           sse.write({
             type: 'tool_call',
@@ -231,7 +257,7 @@ export async function POST(req: Request) {
       sse.write({ type: 'model_switch', model: MODELS.FAST, reason: 'classifier' });
       const routing = attachmentIds.length > 0
         ? { label: 'VISION' as const, raw: 'AUTO_VISION', tokensIn: 0, tokensOut: 0, latencyMs: 0 }
-        : await classifyRoute(userText);
+        : await classifyRoute(effectiveUserText);
       const cfg = ROUTE_CONFIG[routing.label];
 
       sse.write({ type: 'model_switch', model: cfg.model, reason: `main loop (${routing.label})` });

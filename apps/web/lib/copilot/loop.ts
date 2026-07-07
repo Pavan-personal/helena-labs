@@ -58,6 +58,7 @@ export async function runToolLoop(input: RunLoopInput): Promise<RunLoopResult> {
   let timedOut = false;
   let tokensIn = 0;
   let tokensOut = 0;
+  let consecutiveBadArgs = 0;
 
   while (toolCallsMade < cfg.toolCallCap && Date.now() < deadline) {
     let resp: OpenAI.Chat.Completions.ChatCompletion;
@@ -121,6 +122,20 @@ export async function runToolLoop(input: RunLoopInput): Promise<RunLoopResult> {
           workspaceId: input.workspaceId
         });
 
+        // Track a run of invalid-args returns. If the model produces two in
+        // a row it's spiraling — stop before we blow the tool cap.
+        if (
+          result &&
+          typeof result === 'object' &&
+          'error' in result &&
+          typeof (result as { error?: unknown }).error === 'string' &&
+          ((result as { error: string }).error).startsWith('invalid arguments')
+        ) {
+          consecutiveBadArgs += 1;
+        } else {
+          consecutiveBadArgs = 0;
+        }
+
         // Track ids for citation validation
         harvestIds(result, seenIncidentIds, seenRunbookIds);
 
@@ -144,6 +159,11 @@ export async function runToolLoop(input: RunLoopInput): Promise<RunLoopResult> {
           tool_call_id: tc.id,
           content: JSON.stringify(result).slice(0, 8000)
         });
+      }
+      if (consecutiveBadArgs >= 2) {
+        finalText =
+          'I had trouble calling the search tools consistently. Try rephrasing your question with more specific keywords.';
+        break;
       }
       continue;
     }

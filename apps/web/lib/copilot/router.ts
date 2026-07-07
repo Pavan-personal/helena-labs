@@ -15,15 +15,20 @@ export async function classifyRoute(userText: string): Promise<{
   const btl = getBtlClient();
   const t0 = Date.now();
   try {
-    const resp = await btl.chat.completions.create({
-      model: MODELS.FAST,
-      temperature: 0,
-      max_tokens: 16,
-      messages: [
-        { role: 'system', content: CLASSIFIER_PROMPT },
-        { role: 'user', content: userText.slice(0, 2000) }
-      ]
-    });
+    // Hard 5s cap so a stuck classifier can't stall the whole turn. The
+    // fallback still returns DEEP_REASON so the loop keeps going.
+    const resp = await btl.chat.completions.create(
+      {
+        model: MODELS.FAST,
+        temperature: 0,
+        max_tokens: 16,
+        messages: [
+          { role: 'system', content: CLASSIFIER_PROMPT },
+          { role: 'user', content: userText.slice(0, 2000) }
+        ]
+      },
+      { signal: AbortSignal.timeout(5000) }
+    );
     const raw = resp.choices[0]?.message?.content?.trim().toUpperCase() ?? '';
     const parsed = parseLabel(raw);
     return {
