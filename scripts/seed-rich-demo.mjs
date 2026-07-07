@@ -42,7 +42,7 @@ function daysAgo(n) {
 
 // severity, source, channel, title, body, days_ago
 const INCIDENTS = [
-  // ---------- REDIS THEME ----------
+  // REDIS THEME
   [ 'high', 'grafana', 'incidents',
     'Redis primary CPU at 94%, replica lag >30s',
     'redis-primary-01 CPU pegged. Traced to a KEYS "session:*" scan from an internal admin panel. Tom promoted replica. Rebuilt original as replica. Session cache misses spiked briefly then recovered.\n\nAction items: banned KEYS in production, replaced with SCAN cursors.',
@@ -64,7 +64,7 @@ const INCIDENTS = [
     'Black-friday-style spike overwhelmed the async replica. Lag climbed to 4 minutes. Promoted replica manually, added connection pool warmup for future campaigns.',
     92 ],
 
-  // ---------- CHECKOUT / STRIPE ----------
+  // CHECKOUT / STRIPE
   [ 'critical', 'sentry', 'engineering',
     'TypeError: Cannot read property total of undefined in checkout',
     'Regression on checkout flow. Stripe webhook payload has null customer object when guest checkout. Missing null check at api/checkout/finalize.ts:42.\n\nFixed in PR #4218 with optional chaining. Deployed 15:47 UTC.',
@@ -90,7 +90,7 @@ const INCIDENTS = [
     'p95 climbed from 200ms to 3.2s over 2h. Traced to N+1 on user preferences fetch. Added dataloader batching. p95 back to 180ms.',
     38 ],
 
-  // ---------- NOTIFICATION-WORKER OOM ----------
+  // NOTIFICATION-WORKER OOM
   [ 'high', 'grafana', 'incidents',
     'Memory leak on notification-worker, OOM at 3h',
     'Worker OOM every ~3 hours. Traced to a growing Map<userId, PendingBatch> that was never pruned when batches flushed. Added TTL and explicit clear. Worker stable for 24h+ afterward.',
@@ -108,7 +108,7 @@ const INCIDENTS = [
     'Same OOM pattern as prod incident from last week. Fix already merged, staging just needed a redeploy.',
     5 ],
 
-  // ---------- AUTH / OAUTH ----------
+  // AUTH / OAUTH
   [ 'critical', 'sentry', 'engineering',
     'JWT signature verification failing across auth-service',
     'Clock drift between auth-service and edge nodes crossed 60s threshold. NTP sync failed silently on 3 edge nodes. Ran ntpdate manually, monitoring added.',
@@ -130,7 +130,7 @@ const INCIDENTS = [
     'No expiry monitoring on the SAML cert. Rotated in emergency, added 30-day pre-expiry alert.',
     31 ],
 
-  // ---------- DEPLOY / GITHUB ----------
+  // DEPLOY / GITHUB
   [ 'high', 'github', 'incidents',
     'Deployment failure: checkout-service-v2.4.1',
     'ImagePull backoff: private registry auth failed. Docker Hub returned 401. Rotated registry creds via GitHub org secret, redeployed successfully.',
@@ -164,7 +164,7 @@ const INCIDENTS = [
     'v5.2.0 changed refresh token format. Old clients kept trying to refresh with old format → mass logouts. Rolled back, then shipped v5.2.1 with dual-format support.',
     76 ],
 
-  // ---------- DB ----------
+  // DB
   [ 'critical', 'grafana', 'incidents',
     'Database connection pool exhausted on writes-primary',
     'Every workers pool hit ceiling simultaneously. Root cause: forgotten connection.commit() in analytics writer after v2.1 deploy. Rolled back v2.1, released hotfix v2.1.1 later.',
@@ -190,7 +190,7 @@ const INCIDENTS = [
     'One report query was doing a lateral join without an index. Optimized query in reporting-service, added missing (report_id, generated_at) index.',
     59 ],
 
-  // ---------- API GATEWAY / 5XX ----------
+  // API GATEWAY / 5XX
   [ 'medium', 'grafana', 'incidents',
     'API gateway 5xx rate 2.1% (threshold 1%)',
     'Elevated 502s for 6m. Upstream connection reset from checkout-service pods failing readiness after OOM. Bumped memory limit from 512Mi to 1Gi.',
@@ -212,7 +212,7 @@ const INCIDENTS = [
     'Elasticsearch shard went hot due to skewed key distribution. Manually rebalanced shards, changed routing to include a hash suffix.',
     52 ],
 
-  // ---------- KAFKA ----------
+  // KAFKA
   [ 'high', 'grafana', 'incidents',
     'Kafka consumer lag > 500k on order-events',
     'Consumer had scaled down for cost during off-peak, didn\'t scale back up when promo hit. Scaled from 4 to 12 pods, lag drained in 18m.',
@@ -230,7 +230,7 @@ const INCIDENTS = [
     'Bumped kafka-python from 2.0.2 to 2.1.5. Confluent Cloud requires TLS 1.3 from June 2026.',
     41 ],
 
-  // ---------- CDN ----------
+  // CDN
   [ 'medium', 'grafana', 'incidents',
     'CDN cache invalidation stuck for 15m',
     'Cloudflare API returned 429 on purge. Retried with backoff, then bulk purge by hostname worked. Traced to a deploy that purged 12k URLs at once.',
@@ -244,7 +244,7 @@ const INCIDENTS = [
     'Discussed enabling early hints (103) for main pages. Estimated 200-400ms LCP improvement. Filed as ENG-4180.',
     22 ],
 
-  // ---------- CRON ----------
+  // CRON
   [ 'high', 'grafana', 'incidents',
     'Nightly report cron skipped due to previous run still active',
     'Reports job took 4.2h instead of 90m due to data volume growth. Overlap with next run got skipped. Rewrote to chunk by day.',
@@ -262,7 +262,7 @@ const INCIDENTS = [
     'Cron ran but SES threw quota exceeded halfway through. Requested quota bump, resumed from checkpoint.',
     18 ],
 
-  // ---------- MISC RECENT ----------
+  // MISC RECENT
   [ 'medium', 'sentry', 'engineering',
     'ImagePull failure on checkout-service-v2.4.1',
     'Duplicate of earlier issue. Registry rate limit hit again during a mass deploy. Migrated to a mirrored registry.',
