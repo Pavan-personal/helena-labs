@@ -13,11 +13,9 @@ function readTheme(): Theme {
 
 export function ThemeToggle({ className = '' }: { className?: string }) {
   const [theme, setTheme] = useState<Theme>('dark');
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setTheme(readTheme());
-    setMounted(true);
   }, []);
 
   function toggle() {
@@ -37,13 +35,13 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
       onClick={toggle}
       aria-label={isLight ? 'Switch to dark mode' : 'Switch to light mode'}
       title={isLight ? 'Switch to dark mode' : 'Switch to light mode'}
-      className={`inline-flex h-8 w-8 items-center justify-center rounded-md border border-neutral-800 bg-neutral-950/60 text-neutral-300 hover:bg-neutral-900 hover:text-neutral-100 ${className}`}
+      className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-700 bg-neutral-900 text-neutral-100 hover:bg-neutral-800 ${className}`}
     >
-      {mounted && (isLight ? (
-        <Moon className="h-3.5 w-3.5" strokeWidth={1.75} />
+      {isLight ? (
+        <Moon className="h-4 w-4" strokeWidth={1.75} />
       ) : (
-        <Sun className="h-3.5 w-3.5" strokeWidth={1.75} />
-      ))}
+        <Sun className="h-4 w-4" strokeWidth={1.75} />
+      )}
     </button>
   );
 }
