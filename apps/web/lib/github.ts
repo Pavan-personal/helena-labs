@@ -76,6 +76,55 @@ export async function listInstallationRepos(installationId: number): Promise<Arr
   return data.repositories ?? [];
 }
 
+export type CommitInfo = {
+  message: string;
+  author: string;
+  files: number;
+  additions: number;
+  deletions: number;
+};
+
+/**
+ * Fetch commit details for a specific SHA. Used to enrich deployment
+ * incidents with what actually shipped — commit title, author, diff stats.
+ * Returns null on any failure so the caller can degrade gracefully.
+ */
+export async function fetchCommit(
+  installationId: number,
+  fullName: string,
+  sha: string
+): Promise<CommitInfo | null> {
+  try {
+    const token = await getInstallationToken(installationId);
+    const res = await fetch(
+      `https://api.github.com/repos/${fullName}/commits/${sha}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.github+json',
+          'User-Agent': 'helena'
+        }
+      }
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      commit: { message: string; author: { name: string } };
+      author?: { login: string };
+      files?: Array<unknown>;
+      stats?: { additions: number; deletions: number };
+    };
+    return {
+      message: (data.commit.message.split('\n')[0] ?? '').slice(0, 200),
+      author: data.author?.login ?? data.commit.author?.name ?? 'unknown',
+      files: data.files?.length ?? 0,
+      additions: data.stats?.additions ?? 0,
+      deletions: data.stats?.deletions ?? 0
+    };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Verify a GitHub webhook signature using X-Hub-Signature-256.
  */

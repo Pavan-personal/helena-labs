@@ -6,7 +6,7 @@ import {
   type WorkspaceRow
 } from '@helena/db';
 import { computeDedupKey } from '@helena/shared';
-import { listInstallationRepos, verifyGithubSignature } from '@/lib/github';
+import { listInstallationRepos, verifyGithubSignature, fetchCommit } from '@/lib/github';
 import { postToChat } from '@/lib/chat';
 
 export const runtime = 'nodejs';
@@ -256,9 +256,23 @@ async function handleDeploymentStatus(
         ? 'low'
         : 'low';
 
-  const title = `Deployment ${state} on ${environment} (${repo.full_name})`;
+  // Enrich with commit details so the incident card shows WHAT shipped —
+  // commit title, author, diff size. Falls back cleanly if the GitHub API
+  // call fails or the app isn't installed.
+  let commitLine = '';
+  let extendedTitle = `Deployment ${state} on ${environment} (${repo.full_name})`;
+  if (workspace.github_installation_id) {
+    const info = await fetchCommit(workspace.github_installation_id, repo.full_name, dep.sha);
+    if (info) {
+      extendedTitle = `Deployment ${state}: ${info.message}`;
+      commitLine = `Commit: "${info.message}" by @${info.author} · ${info.files} file(s) · +${info.additions}/-${info.deletions}`;
+    }
+  }
+
+  const title = extendedTitle;
   const body = [
-    `Environment: ${environment}`,
+    commitLine,
+    `Environment: ${environment} · ${repo.full_name}`,
     `Ref: ${dep.ref ?? '?'} @ ${shortSha}`,
     ds.description ? `Description: ${ds.description}` : '',
     ds.log_url ? `Logs: ${ds.log_url}` : ''
