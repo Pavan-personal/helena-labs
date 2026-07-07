@@ -5,6 +5,7 @@ import {
   insertIncident,
   searchIncidents,
   getIncidentsByIds,
+  listIncidents,
   type WorkspaceRow
 } from '@helena/db';
 import { rerankCandidates, synthesizeAnswer } from '@helena/btl';
@@ -183,12 +184,18 @@ async function handleAskOnCall(
 
   after(async () => {
     try {
-      const candidates = await searchIncidents(workspace.id, query, 30);
+      // Try keyword search first, then fall back to recent incidents so
+      // generic queries like "what happened today" still get an answer.
+      // The reranker downstream decides which are actually relevant.
+      let candidates = await searchIncidents(workspace.id, query, 30);
+      if (candidates.length === 0) {
+        candidates = await listIncidents(workspace.id, { limit: 20 });
+      }
       if (candidates.length === 0) {
         await editDiscordInteractionResponse(
           env.DISCORD_APPLICATION_ID ?? interaction.application_id,
           interaction.token,
-          'No matching incidents found in memory yet.'
+          'No incidents have been recorded in this workspace yet. Connect Grafana, Sentry, or GitHub in the dashboard and trigger a test event — I will index it here.'
         );
         return;
       }

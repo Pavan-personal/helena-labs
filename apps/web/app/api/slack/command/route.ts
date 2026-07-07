@@ -1,5 +1,5 @@
 import { NextResponse, after } from 'next/server';
-import { getWorkspaceBySlackId, searchIncidents, getIncidentsByIds } from '@helena/db';
+import { getWorkspaceBySlackId, searchIncidents, getIncidentsByIds, listIncidents } from '@helena/db';
 import { rerankCandidates, synthesizeAnswer } from '@helena/btl';
 import { verifySlackSignature, postToSlack } from '@/lib/slack';
 
@@ -80,10 +80,17 @@ interface QueryContext {
 }
 
 async function processQuery(ctx: QueryContext): Promise<void> {
-  const candidates = await searchIncidents(ctx.workspaceId, ctx.query, 30);
-
+  // Keyword search first, then recent-incidents fallback so generic
+  // questions still land useful context. Reranker picks what's relevant.
+  let candidates = await searchIncidents(ctx.workspaceId, ctx.query, 30);
   if (candidates.length === 0) {
-    await replyToSlack(ctx, 'No matching incidents found in memory yet.');
+    candidates = await listIncidents(ctx.workspaceId, { limit: 20 });
+  }
+  if (candidates.length === 0) {
+    await replyToSlack(
+      ctx,
+      'No incidents have been recorded in this workspace yet. Connect Grafana, Sentry, or GitHub in the dashboard and trigger a test event — I will index it here.'
+    );
     return;
   }
 
