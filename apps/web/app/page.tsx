@@ -423,7 +423,7 @@ export default async function Home({
 
         <footer className="max-w-6xl mx-auto px-6 pt-16 pb-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs text-neutral-600 border-t border-neutral-900 mt-16">
           <div>helena · incident memory for on-call teams</div>
-          <div>Built with BTL Runtime for the Runtime Hackathon</div>
+          <div>Built with BTL Runtime</div>
         </footer>
       </div>
     </main>
