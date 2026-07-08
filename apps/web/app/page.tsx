@@ -246,6 +246,74 @@ export default async function Home({
               </ul>
             </div>
           </div>
+
+          {/* Row 3: text left, incidents feed image right */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full border border-neutral-800 bg-neutral-950/60 text-[11px] uppercase tracking-widest text-neutral-500 mb-5">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                One feed
+              </div>
+              <h2 className="text-[28px] md:text-[34px] leading-[1.1] font-semibold tracking-tight text-app mb-4">
+                Every source lands in the
+                <br />
+                <span className="text-neutral-500">same incident memory.</span>
+              </h2>
+              <p className="text-[15px] text-neutral-400 leading-relaxed max-w-md mb-6">
+                Grafana alerts, Sentry errors, GitHub deploys, and generic webhooks feed the same table. Severity colored, source tagged, dedup hashed. Click any row to see the full body and every Copilot answer that has ever cited it.
+              </p>
+              <ul className="space-y-2 text-[14px] text-neutral-400">
+                <li className="flex items-start gap-2">
+                  <span className="mt-2 h-1 w-1 rounded-full bg-neutral-600 shrink-0" />
+                  Dedup on source + external_id so retries do not spam the feed
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="mt-2 h-1 w-1 rounded-full bg-neutral-600 shrink-0" />
+                  Postgres tsvector search under 50 ms as the corpus grows
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="mt-2 h-1 w-1 rounded-full bg-neutral-600 shrink-0" />
+                  Deployment rows show commit title, author, diff stats
+                </li>
+              </ul>
+            </div>
+            <ShowcaseFrame src="/incidents.png" alt="Incidents feed with Grafana, Sentry, and GitHub sources" />
+          </div>
+
+          {/* Row 4: analytics image left, text right */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+            <div className="lg:order-1 order-2">
+              <ShowcaseFrame src="/analytics.png" alt="Usage and cost analytics with per-role token spend" />
+            </div>
+            <div className="lg:order-2 order-1">
+              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full border border-neutral-800 bg-neutral-950/60 text-[11px] uppercase tracking-widest text-neutral-500 mb-5">
+                <span className="h-1.5 w-1.5 rounded-full bg-violet-400" />
+                Transparent cost
+              </div>
+              <h2 className="text-[28px] md:text-[34px] leading-[1.1] font-semibold tracking-tight text-app mb-4">
+                Every token, every role,
+                <br />
+                <span className="text-neutral-500">on one page.</span>
+              </h2>
+              <p className="text-[15px] text-neutral-400 leading-relaxed max-w-md mb-6">
+                Classifier, reasoner, rerank, synth, and vision each track input and output tokens per turn. Costs sum against BTL Runtime prices so you always know what a Copilot answer or a runbook draft actually cost. No surprise bills at month end.
+              </p>
+              <ul className="space-y-2 text-[14px] text-neutral-400">
+                <li className="flex items-start gap-2">
+                  <span className="mt-2 h-1 w-1 rounded-full bg-neutral-600 shrink-0" />
+                  Per role breakdown so cheap models stay on cheap jobs
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="mt-2 h-1 w-1 rounded-full bg-neutral-600 shrink-0" />
+                  Rolling 30 day view with per turn detail on hover
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="mt-2 h-1 w-1 rounded-full bg-neutral-600 shrink-0" />
+                  Fallback model calls flagged separately when routing kicks in
+                </li>
+              </ul>
+            </div>
+          </div>
         </section>
 
         {/* HOW IT WORKS */}
