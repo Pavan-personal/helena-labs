@@ -177,6 +177,77 @@ export default async function Home({
           </div>
         </section>
 
+        {/* PRODUCT SHOWCASE — two alternating rows */}
+        <section id="product" className="max-w-6xl mx-auto px-6 pt-28 pb-8 space-y-24">
+          {/* Row 1: text left, discord image right */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full border border-neutral-800 bg-neutral-950/60 text-[11px] uppercase tracking-widest text-neutral-500 mb-5">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                In your channel
+              </div>
+              <h2 className="text-[28px] md:text-[34px] leading-[1.1] font-semibold tracking-tight text-app mb-4">
+                One slash command.
+                <br />
+                <span className="text-neutral-500">Cited answers in seconds.</span>
+              </h2>
+              <p className="text-[15px] text-neutral-400 leading-relaxed max-w-md mb-6">
+                Type <code className="px-1.5 py-0.5 rounded bg-neutral-900 border border-neutral-800 text-[13px] text-neutral-200">/askoncall</code> in Slack or Discord and helena finds the past fixes, ranks them, and drops a runbook style card back into the thread with every incident id it cited.
+              </p>
+              <ul className="space-y-2 text-[14px] text-neutral-400">
+                <li className="flex items-start gap-2">
+                  <span className="mt-2 h-1 w-1 rounded-full bg-neutral-600 shrink-0" />
+                  Reranked candidates, not the first FTS hit
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="mt-2 h-1 w-1 rounded-full bg-neutral-600 shrink-0" />
+                  Every claim tied to a real INC id
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="mt-2 h-1 w-1 rounded-full bg-neutral-600 shrink-0" />
+                  No hallucinated commands, only ones your team ran before
+                </li>
+              </ul>
+            </div>
+            <ShowcaseFrame src="/discord-chat.png" alt="Discord /askoncall reply with citations" />
+          </div>
+
+          {/* Row 2: copilot image left, text right */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+            <div className="lg:order-1 order-2">
+              <ShowcaseFrame src="/copilot-chat.png" alt="Copilot chat with streaming trace and citations" />
+            </div>
+            <div className="lg:order-2 order-1">
+              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full border border-neutral-800 bg-neutral-950/60 text-[11px] uppercase tracking-widest text-neutral-500 mb-5">
+                <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
+                In the dashboard
+              </div>
+              <h2 className="text-[28px] md:text-[34px] leading-[1.1] font-semibold tracking-tight text-app mb-4">
+                See the reasoning,
+                <br />
+                <span className="text-neutral-500">not just the answer.</span>
+              </h2>
+              <p className="text-[15px] text-neutral-400 leading-relaxed max-w-md mb-6">
+                Every Copilot turn streams a live trace: which model classified, which tool got called, which incidents matched, and the citation validation step before the answer ships. Nothing is hidden.
+              </p>
+              <ul className="space-y-2 text-[14px] text-neutral-400">
+                <li className="flex items-start gap-2">
+                  <span className="mt-2 h-1 w-1 rounded-full bg-neutral-600 shrink-0" />
+                  SSE events for classified, tool_call, tool_result, delta, final
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="mt-2 h-1 w-1 rounded-full bg-neutral-600 shrink-0" />
+                  Clickable INC and RB pills open the source in a new tab
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="mt-2 h-1 w-1 rounded-full bg-neutral-600 shrink-0" />
+                  Attach a screenshot, two vision models must agree
+                </li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
         {/* HOW IT WORKS */}
         <section id="how" className="max-w-6xl mx-auto px-6 pt-24 pb-8">
           <SectionEyebrow>How it works</SectionEyebrow>
@@ -304,6 +375,26 @@ function StepCard({ n, title, body }: { n: string; title: string; body: string }
       <div className="text-[11px] uppercase tracking-widest text-neutral-600 mb-3 font-mono">{n}</div>
       <div className="text-base font-semibold text-app mb-2">{title}</div>
       <div className="text-sm text-neutral-400 leading-relaxed">{body}</div>
+    </div>
+  );
+}
+
+function ShowcaseFrame({ src, alt }: { src: string; alt: string }) {
+  return (
+    <div className="relative rounded-2xl border border-neutral-800 bg-neutral-950/60 backdrop-blur shadow-[0_30px_80px_-30px_rgba(0,0,0,0.7)] overflow-hidden">
+      <div className="flex items-center gap-1.5 px-4 h-8 border-b border-neutral-900 bg-neutral-950">
+        <div className="h-2.5 w-2.5 rounded-full bg-neutral-800" />
+        <div className="h-2.5 w-2.5 rounded-full bg-neutral-800" />
+        <div className="h-2.5 w-2.5 rounded-full bg-neutral-800" />
+      </div>
+      <Image
+        src={src}
+        alt={alt}
+        width={1600}
+        height={1000}
+        className="w-full h-auto block"
+        priority={false}
+      />
     </div>
   );
 }
